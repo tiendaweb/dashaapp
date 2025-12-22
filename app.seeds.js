@@ -1,5 +1,5 @@
 window.AAPPSeeds = {
-  seedMinimal() {
+  seedMinimal({ persist = true } = {}) {
     this.db = {
       saas: [
         { id: this.uid(), name: 'AAPP.SPACE', url: 'https://aapp.space', registerUrl: '', loginUrl: '' },
@@ -12,7 +12,7 @@ window.AAPPSeeds = {
       expenses: [],
       meta: { version: 1, savedAt: null }
     };
-    this.persist();
+    if (persist) this.persist();
   },
 
   seedDemo() {

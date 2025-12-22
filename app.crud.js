@@ -297,7 +297,11 @@ window.AAPPCrud = {
 
   resetAll() {
     if (!confirm('RESET TOTAL: se borra todo el localStorage de esta app. ¿Continuar?')) return;
-    localStorage.removeItem(window.AAPPConstants.STORAGE_KEY);
+    const removed = this.safeStorageRemove(window.AAPPConstants.STORAGE_KEY);
+    if (!removed) {
+      alert('El almacenamiento local está bloqueado. No se pueden borrar los datos guardados.');
+      return;
+    }
     location.reload();
   }
 };
