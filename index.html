@@ -10,6 +10,16 @@
 
   <!-- Alpine.js -->
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script defer src="app.constants.js"></script>
+  <script defer src="app.state.js"></script>
+  <script defer src="app.utils.js"></script>
+  <script defer src="app.core.js"></script>
+  <script defer src="app.filters.js"></script>
+  <script defer src="app.relations.js"></script>
+  <script defer src="app.reports.js"></script>
+  <script defer src="app.crud.js"></script>
+  <script defer src="app.seeds.js"></script>
+  <script defer src="app.js"></script>
 
   <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
@@ -70,42 +80,78 @@
 </head>
 
 <body class="h-full bg-slate-950 text-slate-100">
-  <!-- Topbar -->
-  <header class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center gap-3">
-      <div class="w-10 h-10 rounded-2xl flex items-center justify-center glass ring-blue-soft">
-        <i class="fa-solid fa-layer-group text-sky-300"></i>
+  <div class="min-h-screen md:flex">
+    <!-- Sidebar (desktop) -->
+    <aside class="hidden md:flex md:flex-col w-64 border-r border-white/10 bg-slate-950/80 backdrop-blur sticky top-0 h-screen">
+      <div class="px-4 py-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl flex items-center justify-center glass ring-blue-soft">
+          <i class="fa-solid fa-layer-group text-sky-300"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-extrabold tracking-tight">
+            AAPP Manager
+          </h1>
+          <p class="text-xs text-slate-300">Dashboard local</p>
+        </div>
       </div>
-      <div class="flex-1">
-        <h1 class="text-lg md:text-xl font-extrabold tracking-tight">
-          AAPP Manager <span class="text-sky-300">•</span> Dashboard
-        </h1>
-        <p class="text-xs md:text-sm text-slate-300">
-          Todo local (localStorage) • CRUD • Relaciones • Resúmenes
-        </p>
+
+      <nav class="flex-1 px-4 space-y-2 overflow-y-auto scrollbar">
+        <template x-for="t in tabs" :key="'side-' + t.key">
+          <button
+            class="w-full px-3 py-2 rounded-xl text-sm font-semibold flex items-center gap-3 border border-white/10"
+            :class="activeTab === t.key ? 'bg-sky-500/15 border-sky-400/30 text-sky-200' : 'bg-white/5 hover:bg-white/8 text-slate-200'"
+            @click="activeTab = t.key">
+            <i class="fa-solid" :class="t.icon"></i>
+            <span x-text="t.label"></span>
+          </button>
+        </template>
+      </nav>
+
+      <div class="p-4 text-xs text-slate-400">
+        <div class="flex items-center justify-between">
+          <span>Registros</span>
+          <span class="badge px-2 py-1 rounded-lg" x-text="totalRecordsFiltered()"></span>
+        </div>
       </div>
+    </aside>
 
-      <div class="flex items-center gap-2">
-        <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="toggleDark()">
-          <i class="fa-solid" :class="isDark ? 'fa-moon text-sky-300' : 'fa-sun text-yellow-300'"></i>
-          <span class="hidden sm:inline" x-text="isDark ? 'Dark' : 'Light'"></span>
-        </button>
+    <div class="flex-1 flex flex-col min-h-screen">
+      <!-- Topbar -->
+      <header class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center glass ring-blue-soft md:hidden">
+            <i class="fa-solid fa-layer-group text-sky-300"></i>
+          </div>
+          <div class="flex-1 md:hidden">
+            <h1 class="text-lg md:text-xl font-extrabold tracking-tight">
+              AAPP Manager <span class="text-sky-300">•</span> Dashboard
+            </h1>
+            <p class="text-xs md:text-sm text-slate-300">
+              Todo local (localStorage) • CRUD • Relaciones • Resúmenes
+            </p>
+          </div>
 
-        <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="openModal('dataTools')">
-          <i class="fa-solid fa-database text-sky-300"></i>
-          <span class="hidden sm:inline">Datos</span>
-        </button>
+          <div class="flex items-center gap-2 ml-auto">
+            <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="toggleDark()">
+              <i class="fa-solid" :class="isDark ? 'fa-moon text-sky-300' : 'fa-sun text-yellow-300'"></i>
+              <span class="hidden sm:inline" x-text="isDark ? 'Dark' : 'Light'"></span>
+            </button>
 
-        <button class="btn-danger rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="resetAll()">
-          <i class="fa-solid fa-triangle-exclamation text-red-300"></i>
-          <span class="hidden sm:inline">Reset</span>
-        </button>
-      </div>
-    </div>
-  </header>
+            <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="openModal('dataTools')">
+              <i class="fa-solid fa-database text-sky-300"></i>
+              <span class="hidden sm:inline">Datos</span>
+            </button>
 
-  <!-- Main -->
-  <main class="max-w-7xl mx-auto px-4 py-6">
+            <button class="btn-danger rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="resetAll()">
+              <i class="fa-solid fa-triangle-exclamation text-red-300"></i>
+              <span class="hidden sm:inline">Reset</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main -->
+      <main class="flex-1 max-w-7xl mx-auto px-4 py-6 pb-24 md:pb-6">
     <!-- Quick KPIs -->
     <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       <div class="glass rounded-2xl p-4 ring-blue-soft">
@@ -149,19 +195,13 @@
       </div>
     </section>
 
-    <!-- Tabs -->
+    <!-- Controls -->
     <section class="glass rounded-2xl p-3 ring-blue-soft">
-      <div class="flex flex-wrap gap-2">
-        <template x-for="t in tabs" :key="t.key">
-          <button
-            class="px-3 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 border border-white/10"
-            :class="activeTab === t.key ? 'bg-sky-500/15 border-sky-400/30 text-sky-200' : 'bg-white/5 hover:bg-white/8 text-slate-200'"
-            @click="activeTab = t.key">
-            <i class="fa-solid" :class="t.icon"></i>
-            <span x-text="t.label"></span>
-          </button>
-        </template>
-
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-300">Sección</span>
+          <span class="badge text-xs px-2 py-1 rounded-lg" x-text="tabs.find(t => t.key === activeTab)?.label || ''"></span>
+        </div>
         <div class="ml-auto flex items-center gap-2">
           <input class="input rounded-xl px-3 py-2 text-sm w-64 max-w-full"
                  placeholder="Buscar por nombre / URL / notas…"
@@ -699,7 +739,24 @@
         </div>
       </div>
     </section>
-  </main>
+      </main>
+    </div>
+  </div>
+
+  <!-- Mobile footer nav -->
+  <footer class="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-slate-950/90 backdrop-blur">
+    <div class="flex gap-2 px-3 py-2 overflow-x-auto scrollbar snap-x snap-mandatory">
+      <template x-for="t in tabs" :key="'mobile-' + t.key">
+        <button
+          class="min-w-[84px] flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold border border-white/10 snap-start"
+          :class="activeTab === t.key ? 'bg-sky-500/15 border-sky-400/30 text-sky-200' : 'bg-white/5 hover:bg-white/8 text-slate-200'"
+          @click="activeTab = t.key">
+          <i class="fa-solid text-base" :class="t.icon"></i>
+          <span x-text="t.label"></span>
+        </button>
+      </template>
+    </div>
+  </footer>
 
   <!-- Modal overlay -->
   <div x-show="modal.open" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -990,637 +1047,6 @@
     </div>
   </div>
 
-  <script>
-    function AAPPApp() {
-      const STORAGE_KEY = 'aapp_manager_v1';
-
-      const uid = () => 'id_' + Math.random().toString(16).slice(2) + '_' + Date.now().toString(16);
-
-      const todayISO = () => {
-        const d = new Date();
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
-      };
-
-      return {
-        isDark: true,
-        activeTab: 'saas',
-        q: '',
-        importText: '',
-
-        tabs: [
-          { key: 'saas', label: 'Empresas', icon: 'fa-building' },
-          { key: 'plans', label: 'Planes', icon: 'fa-tags' },
-          { key: 'campaigns', label: 'Campañas', icon: 'fa-bullhorn' },
-          { key: 'clients', label: 'Clientes', icon: 'fa-users' },
-          { key: 'extras', label: 'Extras', icon: 'fa-puzzle-piece' },
-          { key: 'balance', label: 'Balance', icon: 'fa-chart-line' },
-          { key: 'help', label: 'Ayuda', icon: 'fa-circle-question' },
-        ],
-
-        db: {
-          saas: [],
-          plans: [],
-          campaigns: [],
-          extras: [],
-          clients: [],
-          expenses: [], // egresos manuales
-          meta: { version: 1, savedAt: null }
-        },
-
-        expenseForm: { name: '', amount: 0, date: '' },
-
-        modal: { open: false, view: '', title: '' },
-
-        forms: {
-          saas: { id: '', name: '', url: '', registerUrl: '', loginUrl: '' },
-          plan: { id: '', saasId: '', frequency: 'Por mes', title: '', description: '', price: 0 },
-          campaign: { id: '', saasId: '', adName: '', date: '', dailySpend: 0, totalSpend: 0 },
-          extra: { id: '', name: '', price: 0, frequency: 'Única vez' },
-          client: { id: '', name: '', saasId: '', planId: '', extraIds: [], email: '', password: '', date: '', notes: '', links: '' },
-        },
-
-        init() {
-          // Dark mode default
-          this.applyDarkClass();
-
-          // Load DB
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) {
-            try {
-              const parsed = JSON.parse(raw);
-              this.db = this.normalizeDB(parsed);
-            } catch (e) {
-              console.warn('DB inválida, usando vacía', e);
-              this.persist();
-            }
-          } else {
-            // Seed mínimo con tus dos SaaS
-            this.seedMinimal();
-          }
-        },
-
-        normalizeDB(input) {
-          const safe = (arr) => Array.isArray(arr) ? arr : [];
-          const out = {
-            saas: safe(input.saas),
-            plans: safe(input.plans),
-            campaigns: safe(input.campaigns),
-            extras: safe(input.extras),
-            clients: safe(input.clients),
-            expenses: safe(input.expenses),
-            meta: input.meta || { version: 1, savedAt: null }
-          };
-          return out;
-        },
-
-        persist() {
-          this.db.meta.savedAt = new Date().toISOString();
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(this.db));
-        },
-
-        toggleDark() {
-          this.isDark = !this.isDark;
-          this.applyDarkClass();
-        },
-
-        applyDarkClass() {
-          const html = document.documentElement;
-          if (this.isDark) html.classList.add('dark');
-          else html.classList.remove('dark');
-        },
-
-        openModal(view) {
-          this.modal.open = true;
-          this.modal.view = view;
-
-          const titles = {
-            saasForm: (this.forms.saas.id ? 'Editar empresa' : 'Nueva empresa'),
-            planForm: (this.forms.plan.id ? 'Editar plan' : 'Nuevo plan'),
-            campaignForm: (this.forms.campaign.id ? 'Editar campaña' : 'Nueva campaña'),
-            extraForm: (this.forms.extra.id ? 'Editar servicio extra' : 'Nuevo servicio extra'),
-            clientForm: (this.forms.client.id ? 'Editar cliente' : 'Nuevo cliente'),
-            dataTools: 'Datos • Exportar / Importar / Demo'
-          };
-          this.modal.title = titles[view] || 'Formulario';
-
-          // defaults
-          if (view === 'campaignForm' && !this.forms.campaign.date) this.forms.campaign.date = todayISO();
-          if (view === 'clientForm' && !this.forms.client.date) this.forms.client.date = todayISO();
-        },
-
-        closeModal() {
-          this.modal.open = false;
-          this.modal.view = '';
-        },
-
-        // Utilities
-        fmtMoney(v) {
-          const n = Number(v || 0);
-          return n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
-        },
-        shortUrl(u) {
-          if (!u) return '-';
-          try {
-            const url = new URL(u);
-            return url.host;
-          } catch { return u; }
-        },
-
-        // Filters
-        matchQuery(text) {
-          const q = (this.q || '').trim().toLowerCase();
-          if (!q) return true;
-          return String(text || '').toLowerCase().includes(q);
-        },
-
-        filteredSaaS() {
-          return this.db.saas.filter(s =>
-            this.matchQuery(s.name) || this.matchQuery(s.url) || this.matchQuery(s.registerUrl) || this.matchQuery(s.loginUrl)
-          );
-        },
-
-        filteredPlans() {
-          return this.db.plans.filter(p =>
-            this.matchQuery(p.title) || this.matchQuery(p.description) || this.matchQuery(this.saasName(p.saasId))
-          );
-        },
-
-        filteredCampaigns() {
-          return this.db.campaigns.filter(c =>
-            this.matchQuery(c.adName) || this.matchQuery(c.date) || this.matchQuery(this.saasName(c.saasId))
-          ).sort((a,b) => (b.date || '').localeCompare(a.date || ''));
-        },
-
-        filteredExtras() {
-          return this.db.extras.filter(e =>
-            this.matchQuery(e.name) || this.matchQuery(e.frequency)
-          );
-        },
-
-        filteredClients() {
-          return this.db.clients.filter(cl => {
-            const extrasText = (cl.extraIds||[]).map(id => this.extraName(id)).join(' ');
-            return (
-              this.matchQuery(cl.name) ||
-              this.matchQuery(cl.notes) ||
-              this.matchQuery(cl.links) ||
-              this.matchQuery(cl.email) ||
-              this.matchQuery(this.saasName(cl.saasId)) ||
-              this.matchQuery(this.planTitle(cl.planId)) ||
-              this.matchQuery(extrasText)
-            );
-          }).sort((a,b) => (b.date || '').localeCompare(a.date || ''));
-        },
-
-        totalRecordsFiltered() {
-          switch(this.activeTab) {
-            case 'saas': return this.filteredSaaS().length;
-            case 'plans': return this.filteredPlans().length;
-            case 'campaigns': return this.filteredCampaigns().length;
-            case 'clients': return this.filteredClients().length;
-            case 'extras': return this.filteredExtras().length;
-            default: return this.db.saas.length + this.db.plans.length + this.db.campaigns.length + this.db.clients.length + this.db.extras.length;
-          }
-        },
-
-        // Relations helpers
-        saasName(saasId) {
-          return this.db.saas.find(x => x.id === saasId)?.name || '-';
-        },
-        plansBySaas(saasId) {
-          if (!saasId) return [];
-          return this.db.plans.filter(p => p.saasId === saasId);
-        },
-        campaignsBySaas(saasId) {
-          if (!saasId) return [];
-          return this.db.campaigns.filter(c => c.saasId === saasId);
-        },
-        countPlansBySaas(saasId) {
-          return this.db.plans.filter(p => p.saasId === saasId).length;
-        },
-        countClientsBySaas(saasId) {
-          return this.db.clients.filter(c => c.saasId === saasId).length;
-        },
-
-        planTitle(planId) {
-          return this.db.plans.find(p => p.id === planId)?.title || '-';
-        },
-        planFrequency(planId) {
-          return this.db.plans.find(p => p.id === planId)?.frequency || '-';
-        },
-        planPrice(planId) {
-          return Number(this.db.plans.find(p => p.id === planId)?.price || 0);
-        },
-
-        extraName(extraId) {
-          return this.db.extras.find(e => e.id === extraId)?.name || '(extra borrado)';
-        },
-        extraPrice(extraId) {
-          return Number(this.db.extras.find(e => e.id === extraId)?.price || 0);
-        },
-        extraFrequency(extraId) {
-          return this.db.extras.find(e => e.id === extraId)?.frequency || 'Única vez';
-        },
-
-        // Campaign formulas
-        calcTaxes(c) {
-          const daily = Number(c?.dailySpend || 0);
-          const total = Number(c?.totalSpend || 0);
-          const taxes = total - daily;
-          return taxes > 0 ? taxes : 0;
-        },
-        calcTotalWithTaxes(c) {
-          const daily = Number(c?.dailySpend || 0);
-          const total = Number(c?.totalSpend || 0);
-          // si el user no completa total, asumimos "sin impuestos"
-          if (!total || total <= 0) return daily;
-          // si total es menor que daily, no tiene sentido: devolvemos daily
-          return total < daily ? daily : total;
-        },
-
-        // Totals / reports
-        sumDailySpendAll() {
-          return this.db.campaigns.reduce((acc, c) => acc + Number(c.dailySpend||0), 0);
-        },
-        totalAdsSpendAllTime() {
-          return this.db.campaigns.reduce((acc, c) => acc + this.calcTotalWithTaxes(c), 0);
-        },
-        totalAdsSpendBySaas(saasId) {
-          return this.db.campaigns
-            .filter(c => c.saasId === saasId)
-            .reduce((acc, c) => acc + this.calcTotalWithTaxes(c), 0);
-        },
-        sumDailySpendBySaas(saasId) {
-          return this.db.campaigns
-            .filter(c => c.saasId === saasId)
-            .reduce((acc, c) => acc + Number(c.dailySpend||0), 0);
-        },
-        adsSpendToday() {
-          // estimación: suma totalWithTaxes por campaña (como lo pediste)
-          return this.db.campaigns.reduce((acc, c) => acc + this.calcTotalWithTaxes(c), 0);
-        },
-        adsSpendWeek() {
-          return this.adsSpendToday() * 7;
-        },
-
-        // Client totals (normalizado a "mensual estimado" para dashboard)
-        normalizeToMonthly(amount, frequency) {
-          const v = Number(amount || 0);
-          if (frequency === 'Por año') return v / 12;
-          if (frequency === 'Por mes') return v;
-          // Única vez: lo prorrateamos en 12 para estimación suave (podés cambiarlo)
-          if (frequency === 'Única vez') return v / 12;
-          return v;
-        },
-
-        clientTotal(cl) {
-          // total nominal (no normalizado): plan + extras (sumando como estén)
-          const plan = this.db.plans.find(p => p.id === cl.planId);
-          const planPrice = Number(plan?.price || 0);
-          let extras = 0;
-          (cl.extraIds || []).forEach(id => extras += this.extraPrice(id));
-          return planPrice + extras;
-        },
-
-        incomePlansMonthlyEstimate() {
-          return this.db.clients.reduce((acc, cl) => {
-            const plan = this.db.plans.find(p => p.id === cl.planId);
-            acc += this.normalizeToMonthly(plan?.price || 0, plan?.frequency || 'Por mes');
-            return acc;
-          }, 0);
-        },
-
-        incomeExtrasMonthlyEstimate() {
-          return this.db.clients.reduce((acc, cl) => {
-            (cl.extraIds || []).forEach(id => {
-              acc += this.normalizeToMonthly(this.extraPrice(id), this.extraFrequency(id));
-            });
-            return acc;
-          }, 0);
-        },
-
-        totalIncomeEstimate() {
-          return this.incomePlansMonthlyEstimate() + this.incomeExtrasMonthlyEstimate();
-        },
-
-        domainExtrasCount() {
-          // heurística: cuenta extras que contengan "dominio"
-          const domainExtraIds = this.db.extras
-            .filter(e => (e.name || '').toLowerCase().includes('dominio'))
-            .map(e => e.id);
-
-          return this.db.clients.reduce((acc, cl) => {
-            const has = (cl.extraIds || []).some(id => domainExtraIds.includes(id));
-            return acc + (has ? 1 : 0);
-          }, 0);
-        },
-
-        totalExpensesManual() {
-          return this.db.expenses.reduce((acc, ex) => acc + Number(ex.amount || 0), 0);
-        },
-
-        balanceEstimate() {
-          // Saldo estimado: ingresos (mensual estimado) - egresos manuales - ads total
-          return this.totalIncomeEstimate() - this.totalExpensesManual() - this.totalAdsSpendAllTime();
-        },
-
-        // CRUD: SaaS
-        resetSaasForm() {
-          this.forms.saas = { id: '', name: '', url: '', registerUrl: '', loginUrl: '' };
-        },
-        editSaas(id) {
-          const s = this.db.saas.find(x => x.id === id);
-          if (!s) return;
-          this.forms.saas = JSON.parse(JSON.stringify(s));
-          this.openModal('saasForm');
-        },
-        saveSaas() {
-          const f = this.forms.saas;
-          if (!String(f.name || '').trim()) return alert('Falta el nombre.');
-          if (!String(f.url || '').trim()) return alert('Falta la URL.');
-
-          if (f.id) {
-            const idx = this.db.saas.findIndex(x => x.id === f.id);
-            if (idx >= 0) this.db.saas[idx] = { ...this.db.saas[idx], ...f };
-          } else {
-            this.db.saas.push({ ...f, id: uid() });
-          }
-          this.persist();
-          this.closeModal();
-          this.resetSaasForm();
-        },
-        delSaas(id) {
-          if (!confirm('¿Borrar empresa? Esto NO borra planes/clientes automáticamente.')) return;
-          this.db.saas = this.db.saas.filter(x => x.id !== id);
-          this.persist();
-        },
-
-        // CRUD: Plans
-        resetPlanForm() {
-          this.forms.plan = { id: '', saasId: '', frequency: 'Por mes', title: '', description: '', price: 0 };
-        },
-        editPlan(id) {
-          const p = this.db.plans.find(x => x.id === id);
-          if (!p) return;
-          this.forms.plan = JSON.parse(JSON.stringify(p));
-          this.openModal('planForm');
-        },
-        savePlan() {
-          const f = this.forms.plan;
-          if (!f.saasId) return alert('Seleccioná una empresa.');
-          if (!String(f.title || '').trim()) return alert('Falta el título.');
-          if (!Number(f.price || 0)) return alert('Falta el precio.');
-
-          if (f.id) {
-            const idx = this.db.plans.findIndex(x => x.id === f.id);
-            if (idx >= 0) this.db.plans[idx] = { ...this.db.plans[idx], ...f, price: Number(f.price||0) };
-          } else {
-            this.db.plans.push({ ...f, id: uid(), price: Number(f.price||0) });
-          }
-          this.persist();
-          this.closeModal();
-          this.resetPlanForm();
-        },
-        delPlan(id) {
-          if (!confirm('¿Borrar plan? Clientes que lo usen quedarán con plan “-”.')) return;
-          this.db.plans = this.db.plans.filter(x => x.id !== id);
-          this.persist();
-        },
-
-        // CRUD: Campaigns
-        resetCampaignForm() {
-          this.forms.campaign = { id: '', saasId: '', adName: '', date: todayISO(), dailySpend: 0, totalSpend: 0 };
-        },
-        editCampaign(id) {
-          const c = this.db.campaigns.find(x => x.id === id);
-          if (!c) return;
-          this.forms.campaign = JSON.parse(JSON.stringify(c));
-          this.openModal('campaignForm');
-        },
-        saveCampaign() {
-          const f = this.forms.campaign;
-          if (!f.saasId) return alert('Seleccioná una empresa.');
-          if (!String(f.adName || '').trim()) return alert('Falta el anuncio/nombre.');
-          if (!String(f.date || '').trim()) f.date = todayISO();
-          f.dailySpend = Number(f.dailySpend||0);
-          f.totalSpend = Number(f.totalSpend||0);
-
-          if (!f.dailySpend) return alert('Cargá gasto por día.');
-
-          if (f.id) {
-            const idx = this.db.campaigns.findIndex(x => x.id === f.id);
-            if (idx >= 0) this.db.campaigns[idx] = { ...this.db.campaigns[idx], ...f };
-          } else {
-            this.db.campaigns.push({ ...f, id: uid() });
-          }
-          this.persist();
-          this.closeModal();
-          this.resetCampaignForm();
-        },
-        delCampaign(id) {
-          if (!confirm('¿Borrar campaña?')) return;
-          this.db.campaigns = this.db.campaigns.filter(x => x.id !== id);
-          this.persist();
-        },
-
-        // CRUD: Extras
-        resetExtraForm() {
-          this.forms.extra = { id: '', name: '', price: 0, frequency: 'Única vez' };
-        },
-        editExtra(id) {
-          const e = this.db.extras.find(x => x.id === id);
-          if (!e) return;
-          this.forms.extra = JSON.parse(JSON.stringify(e));
-          this.openModal('extraForm');
-        },
-        saveExtra() {
-          const f = this.forms.extra;
-          if (!String(f.name || '').trim()) return alert('Falta el nombre.');
-          f.price = Number(f.price||0);
-          if (!f.price) return alert('Falta el precio.');
-
-          if (f.id) {
-            const idx = this.db.extras.findIndex(x => x.id === f.id);
-            if (idx >= 0) this.db.extras[idx] = { ...this.db.extras[idx], ...f };
-          } else {
-            this.db.extras.push({ ...f, id: uid() });
-          }
-          this.persist();
-          this.closeModal();
-          this.resetExtraForm();
-        },
-        delExtra(id) {
-          if (!confirm('¿Borrar extra? Clientes que lo usen lo perderán.')) return;
-          // quitar de clientes
-          this.db.clients = this.db.clients.map(c => ({
-            ...c,
-            extraIds: (c.extraIds||[]).filter(x => x !== id)
-          }));
-          this.db.extras = this.db.extras.filter(x => x.id !== id);
-          this.persist();
-        },
-
-        // CRUD: Clients
-        resetClientForm() {
-          this.forms.client = { id:'', name:'', saasId:'', planId:'', extraIds:[], email:'', password:'', date: todayISO(), notes:'', links:'' };
-        },
-        syncPlanToCompany() {
-          // si plan no pertenece a esa empresa, lo limpia
-          const saasId = this.forms.client.saasId;
-          const plan = this.db.plans.find(p => p.id === this.forms.client.planId);
-          if (plan && plan.saasId !== saasId) this.forms.client.planId = '';
-        },
-        toggleClientExtra(extraId, checked) {
-          const list = new Set(this.forms.client.extraIds || []);
-          if (checked) list.add(extraId);
-          else list.delete(extraId);
-          this.forms.client.extraIds = Array.from(list);
-        },
-        editClient(id) {
-          const cl = this.db.clients.find(x => x.id === id);
-          if (!cl) return;
-          this.forms.client = JSON.parse(JSON.stringify(cl));
-          this.openModal('clientForm');
-        },
-        saveClient() {
-          const f = this.forms.client;
-          if (!String(f.name || '').trim()) return alert('Falta el nombre.');
-          if (!f.saasId) return alert('Seleccioná una empresa.');
-          if (!f.planId) return alert('Seleccioná un plan activo.');
-
-          if (f.id) {
-            const idx = this.db.clients.findIndex(x => x.id === f.id);
-            if (idx >= 0) this.db.clients[idx] = { ...this.db.clients[idx], ...f };
-          } else {
-            this.db.clients.push({ ...f, id: uid() });
-          }
-          this.persist();
-          this.closeModal();
-          this.resetClientForm();
-        },
-        delClient(id) {
-          if (!confirm('¿Borrar cliente?')) return;
-          this.db.clients = this.db.clients.filter(x => x.id !== id);
-          this.persist();
-        },
-
-        // Manual expenses
-        addExpense() {
-          const n = (this.expenseForm.name || '').trim();
-          const a = Number(this.expenseForm.amount || 0);
-          const d = (this.expenseForm.date || '').trim();
-          if (!n) return alert('Falta el concepto.');
-          if (!a) return alert('Falta el monto.');
-          this.db.expenses.push({ name: n, amount: a, date: d || todayISO() });
-          this.expenseForm = { name: '', amount: 0, date: '' };
-          this.persist();
-        },
-        removeExpense(idx) {
-          this.db.expenses.splice(idx, 1);
-          this.persist();
-        },
-        clearExpenses() {
-          if (!confirm('¿Borrar todos los egresos manuales?')) return;
-          this.db.expenses = [];
-          this.persist();
-        },
-
-        // Data tools
-        exportJSON() {
-          const blob = new Blob([JSON.stringify(this.db, null, 2)], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `aapp_manager_backup_${new Date().toISOString().slice(0,10)}.json`;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          URL.revokeObjectURL(url);
-        },
-
-        importJSON() {
-          const txt = (this.importText || '').trim();
-          if (!txt) return alert('Pegá un JSON primero.');
-          if (!confirm('Esto reemplaza todos tus datos actuales. ¿Continuar?')) return;
-
-          try {
-            const parsed = JSON.parse(txt);
-            this.db = this.normalizeDB(parsed);
-            this.persist();
-            alert('Importado OK.');
-            this.closeModal();
-          } catch (e) {
-            alert('JSON inválido.');
-          }
-        },
-
-        resetAll() {
-          if (!confirm('RESET TOTAL: se borra todo el localStorage de esta app. ¿Continuar?')) return;
-          localStorage.removeItem(STORAGE_KEY);
-          location.reload();
-        },
-
-        // Seeds
-        seedMinimal() {
-          this.db = {
-            saas: [
-              { id: uid(), name: 'AAPP.SPACE', url: 'https://aapp.space', registerUrl: '', loginUrl: '' },
-              { id: uid(), name: 'MiniTienda', url: 'https://minitienda.uno', registerUrl: '', loginUrl: '' }
-            ],
-            plans: [],
-            campaigns: [],
-            extras: [],
-            clients: [],
-            expenses: [],
-            meta: { version: 1, savedAt: null }
-          };
-          this.persist();
-        },
-
-        seedDemo() {
-          const s1 = uid(), s2 = uid();
-          const p1 = uid(), p2 = uid(), p3 = uid();
-          const e1 = uid(), e2 = uid(), e3 = uid();
-          const c1 = uid(), c2 = uid();
-
-          this.db = {
-            saas: [
-              { id: s1, name: 'AAPP.SPACE', url: 'https://aapp.space', registerUrl: 'https://aapp.space/register', loginUrl: 'https://aapp.space/login' },
-              { id: s2, name: 'MiniTienda', url: 'https://minitienda.uno', registerUrl: 'https://minitienda.uno/register', loginUrl: 'https://minitienda.uno/login' }
-            ],
-            plans: [
-              { id: p1, saasId: s1, frequency: 'Por mes', title: 'Básico', description: 'Sitio/tienda + WhatsApp + panel editable', price: 100000 },
-              { id: p2, saasId: s1, frequency: 'Por año', title: 'Premium', description: 'Más páginas + soporte + optimizaciones', price: 900000 },
-              { id: p3, saasId: s2, frequency: 'Por año', title: 'Oferta Anual', description: 'Tienda conectada a WhatsApp + carrito + pedidos', price: 150000 }
-            ],
-            campaigns: [
-              { id: uid(), saasId: s2, adName: 'Meta Ads • Tienda WhatsApp', date: todayISO(), dailySpend: 15000, totalSpend: 19500 },
-              { id: uid(), saasId: s1, adName: 'Lead Ads • AAPP.SPACE', date: todayISO(), dailySpend: 20000, totalSpend: 26000 }
-            ],
-            extras: [
-              { id: e1, name: 'Dominio .com / .com.ar', price: 50000, frequency: 'Por año' },
-              { id: e2, name: 'Diseño de logo', price: 25000, frequency: 'Única vez' },
-              { id: e3, name: 'Setup / Configuración', price: 100000, frequency: 'Única vez' }
-            ],
-            clients: [
-              { id: c1, name: 'Cliente Ejemplo 1', saasId: s2, planId: p3, extraIds: [e1], email: 'cliente1@mail.com', password: '1234', date: todayISO(), notes: 'Paga anual, pedir catálogo', links: 'Panel: /login' },
-              { id: c2, name: 'Cliente Ejemplo 2', saasId: s1, planId: p1, extraIds: [e2, e3], email: 'cliente2@mail.com', password: 'abcd', date: todayISO(), notes: 'Quiere activar hoy', links: 'Drive: carpeta propuesta' }
-            ],
-            expenses: [
-              { name: 'Hosting / VPS', amount: 25000, date: todayISO() }
-            ],
-            meta: { version: 1, savedAt: null }
-          };
-
-          this.persist();
-          alert('Demo cargada.');
-          this.closeModal();
-        }
-      }
-    }
-  </script>
+  
 </body>
 </html>
