@@ -4,7 +4,11 @@ window.AAPPCore = {
     this.applyDarkClass();
 
     // Load DB
-    const raw = localStorage.getItem(window.AAPPConstants.STORAGE_KEY);
+    const raw = this.safeStorageGet(window.AAPPConstants.STORAGE_KEY);
+    if (this.storageBlocked) {
+      this.seedMinimal({ persist: false });
+      return;
+    }
     if (raw) {
       try {
         const parsed = JSON.parse(raw);
@@ -34,7 +38,10 @@ window.AAPPCore = {
 
   persist() {
     this.db.meta.savedAt = new Date().toISOString();
-    localStorage.setItem(window.AAPPConstants.STORAGE_KEY, JSON.stringify(this.db));
+    const saved = this.safeStorageSet(window.AAPPConstants.STORAGE_KEY, JSON.stringify(this.db));
+    if (!saved) {
+      alert('El almacenamiento local está bloqueado. Los datos no podrán persistir.');
+    }
   },
 
   toggleDark() {
