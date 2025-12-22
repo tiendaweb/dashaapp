@@ -201,6 +201,72 @@ window.AAPPCrud = {
   },
 
   // Data tools
+  exportAllCSV() {
+    const header = [
+      'area',
+      'id',
+      'name',
+      'url',
+      'registerUrl',
+      'loginUrl',
+      'saasId',
+      'planId',
+      'frequency',
+      'title',
+      'description',
+      'price',
+      'adName',
+      'date',
+      'dailySpend',
+      'totalSpend',
+      'extraIds',
+      'email',
+      'password',
+      'notes',
+      'links',
+      'amount',
+      'savedAt',
+      'metaVersion'
+    ];
+    const escapeCSV = (value) => {
+      if (value === null || value === undefined) return '';
+      const str = String(value);
+      if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+      return str;
+    };
+    const buildRow = (area, data = {}) => header.map((key) => {
+      if (key === 'area') return escapeCSV(area);
+      if (key === 'extraIds') {
+        const extras = Array.isArray(data.extraIds) ? data.extraIds.join('|') : data.extraIds;
+        return escapeCSV(extras);
+      }
+      return escapeCSV(data[key]);
+    });
+
+    const rows = [header];
+    this.db.saas.forEach((item) => rows.push(buildRow('saas', item)));
+    this.db.plans.forEach((item) => rows.push(buildRow('plans', item)));
+    this.db.campaigns.forEach((item) => rows.push(buildRow('campaigns', item)));
+    this.db.extras.forEach((item) => rows.push(buildRow('extras', item)));
+    this.db.clients.forEach((item) => rows.push(buildRow('clients', item)));
+    this.db.expenses.forEach((item) => rows.push(buildRow('expenses', item)));
+    rows.push(buildRow('meta', {
+      savedAt: this.db.meta?.savedAt || '',
+      metaVersion: this.db.meta?.version || ''
+    }));
+
+    const csv = rows.map((row) => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `aapp_manager_export_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+
   exportJSON() {
     const blob = new Blob([JSON.stringify(this.db, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);

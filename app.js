@@ -1,4 +1,4 @@
-function AAPPApp() {
+window.AAPPApp = function AAPPApp() {
   return {
     ...window.AAPPState(),
     ...window.AAPPUtils,
@@ -9,4 +9,4 @@ function AAPPApp() {
     ...window.AAPPCrud,
     ...window.AAPPSeeds
   };
-}
+};
