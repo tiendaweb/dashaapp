@@ -32,12 +32,34 @@ window.AAPPCrud = {
 
   // CRUD: Plans
   resetPlanForm() {
-    this.forms.plan = { id: '', saasId: '', frequency: 'Por mes', title: '', description: '', price: 0 };
+    this.forms.plan = {
+      id: '',
+      saasId: '',
+      frequency: 'Por mes',
+      title: '',
+      description: '',
+      price: 0,
+      features: [],
+      variableFeatures: []
+    };
+    this.imports.plan = '';
   },
   editPlan(id) {
     const p = this.db.plans.find(x => x.id === id);
     if (!p) return;
-    this.forms.plan = JSON.parse(JSON.stringify(p));
+    this.forms.plan = {
+      id: '',
+      saasId: '',
+      frequency: 'Por mes',
+      title: '',
+      description: '',
+      price: 0,
+      features: [],
+      variableFeatures: [],
+      ...JSON.parse(JSON.stringify(p))
+    };
+    this.ensureFeatureLists('plan');
+    this.imports.plan = '';
     this.openModal('planForm');
   },
   savePlan() {
@@ -45,6 +67,9 @@ window.AAPPCrud = {
     if (!f.saasId) return alert('Seleccioná una empresa.');
     if (!String(f.title || '').trim()) return alert('Falta el título.');
     if (!Number(f.price || 0)) return alert('Falta el precio.');
+    this.ensureFeatureLists('plan');
+    f.features = this.cleanFeatures(f.features);
+    f.variableFeatures = this.cleanVariableFeatures(f.variableFeatures);
 
     if (f.id) {
       const idx = this.db.plans.findIndex(x => x.id === f.id);
@@ -100,19 +125,43 @@ window.AAPPCrud = {
 
   // CRUD: Extras
   resetExtraForm() {
-    this.forms.extra = { id: '', name: '', price: 0, frequency: 'Única vez' };
+    this.forms.extra = {
+      id: '',
+      saasId: '',
+      name: '',
+      price: 0,
+      frequency: 'Única vez',
+      features: [],
+      variableFeatures: []
+    };
+    this.imports.extra = '';
   },
   editExtra(id) {
     const e = this.db.extras.find(x => x.id === id);
     if (!e) return;
-    this.forms.extra = JSON.parse(JSON.stringify(e));
+    this.forms.extra = {
+      id: '',
+      saasId: '',
+      name: '',
+      price: 0,
+      frequency: 'Única vez',
+      features: [],
+      variableFeatures: [],
+      ...JSON.parse(JSON.stringify(e))
+    };
+    this.ensureFeatureLists('extra');
+    this.imports.extra = '';
     this.openModal('extraForm');
   },
   saveExtra() {
     const f = this.forms.extra;
+    if (!f.saasId) return alert('Seleccioná una empresa.');
     if (!String(f.name || '').trim()) return alert('Falta el nombre.');
     f.price = Number(f.price || 0);
     if (!f.price) return alert('Falta el precio.');
+    this.ensureFeatureLists('extra');
+    f.features = this.cleanFeatures(f.features);
+    f.variableFeatures = this.cleanVariableFeatures(f.variableFeatures);
 
     if (f.id) {
       const idx = this.db.extras.findIndex(x => x.id === f.id);
@@ -144,6 +193,8 @@ window.AAPPCrud = {
     const saasId = this.forms.client.saasId;
     const plan = this.db.plans.find(p => p.id === this.forms.client.planId);
     if (plan && plan.saasId !== saasId) this.forms.client.planId = '';
+    const allowedExtraIds = new Set(this.extrasBySaas(saasId).map(e => e.id));
+    this.forms.client.extraIds = (this.forms.client.extraIds || []).filter(id => allowedExtraIds.has(id));
   },
   toggleClientExtra(extraId, checked) {
     const list = new Set(this.forms.client.extraIds || []);
@@ -191,6 +242,7 @@ window.AAPPCrud = {
       deliveryTime: '',
       requirements: ''
     };
+    this.imports.reseller = '';
   },
   syncResellerSource() {
     if (this.forms.reseller.sourceType === 'plan') {
@@ -200,14 +252,16 @@ window.AAPPCrud = {
       }
       return;
     }
-    if (!this.db.extras.find(e => e.id === this.forms.reseller.sourceId)) {
-      this.forms.reseller.sourceId = this.db.extras[0]?.id || '';
+    const extras = this.extrasBySaas(this.forms.reseller.saasId);
+    if (!extras.find(e => e.id === this.forms.reseller.sourceId)) {
+      this.forms.reseller.sourceId = extras[0]?.id || '';
     }
   },
   editReseller(id) {
     const r = this.db.resellers.find(x => x.id === id);
     if (!r) return;
     this.forms.reseller = JSON.parse(JSON.stringify(r));
+    this.imports.reseller = '';
     this.openModal('resellerForm');
   },
   saveReseller() {
@@ -234,6 +288,66 @@ window.AAPPCrud = {
     if (!confirm('¿Borrar este plan revendedor?')) return;
     this.db.resellers = this.db.resellers.filter(x => x.id !== id);
     this.persist();
+  },
+
+  ensureFeatureLists(formKey) {
+    const form = this.forms[formKey];
+    if (!Array.isArray(form.features)) form.features = [];
+    if (!Array.isArray(form.variableFeatures)) form.variableFeatures = [];
+  },
+  cleanFeatures(list = []) {
+    return list
+      .map((item) => ({
+        label: String(item?.label || '').trim(),
+        enabled: Boolean(item?.enabled)
+      }))
+      .filter((item) => item.label);
+  },
+  cleanVariableFeatures(list = []) {
+    return list
+      .map((item) => ({
+        key: String(item?.key || '').trim(),
+        value: String(item?.value || '').trim()
+      }))
+      .filter((item) => item.key || item.value);
+  },
+  addFeatureRow(formKey) {
+    this.ensureFeatureLists(formKey);
+    this.forms[formKey].features.push({ label: '', enabled: true });
+  },
+  removeFeatureRow(formKey, idx) {
+    this.ensureFeatureLists(formKey);
+    this.forms[formKey].features.splice(idx, 1);
+  },
+  addVariableFeatureRow(formKey) {
+    this.ensureFeatureLists(formKey);
+    this.forms[formKey].variableFeatures.push({ key: '', value: '' });
+  },
+  removeVariableFeatureRow(formKey, idx) {
+    this.ensureFeatureLists(formKey);
+    this.forms[formKey].variableFeatures.splice(idx, 1);
+  },
+  importFeaturePreset(formKey) {
+    const sourceId = this.imports[formKey];
+    if (!sourceId) return;
+    const sourceList = formKey === 'plan' ? this.db.plans : this.db.extras;
+    const source = sourceList.find(item => item.id === sourceId);
+    if (!source) return;
+    this.forms[formKey].features = this.cleanFeatures(source.features || []).map(item => ({ ...item }));
+    this.forms[formKey].variableFeatures = this.cleanVariableFeatures(source.variableFeatures || []).map(item => ({ ...item }));
+  },
+  importResellerPreset() {
+    const sourceId = this.imports.reseller;
+    if (!sourceId) return;
+    const source = this.db.resellers.find(item => item.id === sourceId);
+    if (!source) return;
+    this.forms.reseller = {
+      ...this.forms.reseller,
+      costPrice: Number(source.costPrice || 0),
+      salePrice: Number(source.salePrice || 0),
+      deliveryTime: source.deliveryTime || '',
+      requirements: source.requirements || ''
+    };
   },
 
   refreshResellerHTML() {

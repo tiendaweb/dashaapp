@@ -27,9 +27,22 @@ window.AAPPCore = {
     const safe = (arr) => Array.isArray(arr) ? arr : [];
     return {
       saas: safe(input.saas).map((s) => ({ logoUrl: '', ...s })),
-      plans: safe(input.plans),
+      plans: safe(input.plans).map((p) => ({
+        features: [],
+        variableFeatures: [],
+        ...p,
+        features: Array.isArray(p.features) ? p.features : [],
+        variableFeatures: Array.isArray(p.variableFeatures) ? p.variableFeatures : []
+      })),
       campaigns: safe(input.campaigns),
-      extras: safe(input.extras),
+      extras: safe(input.extras).map((e) => ({
+        saasId: '',
+        features: [],
+        variableFeatures: [],
+        ...e,
+        features: Array.isArray(e.features) ? e.features : [],
+        variableFeatures: Array.isArray(e.variableFeatures) ? e.variableFeatures : []
+      })),
       resellers: safe(input.resellers),
       clients: safe(input.clients),
       expenses: safe(input.expenses),

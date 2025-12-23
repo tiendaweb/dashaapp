@@ -132,6 +132,19 @@ window.AAPPReports = {
         ? `<img src="${this.escapeHTML(saas.logoUrl)}" alt="${this.escapeHTML(saas.name)} logo" class="logo" />`
         : `<div class="logo-placeholder">${this.escapeHTML(saas.name || '?').slice(0, 1)}</div>`;
 
+      const frequencies = Array.from(new Set(items.map((r) => this.resellerBase(r).frequency).filter(Boolean)));
+
+      const filters = frequencies.length
+        ? `
+          <div class="filters">
+            <button class="filter-btn active" data-frequency-filter data-frequency="all" data-saas="${this.escapeHTML(saas.id)}">Todos</button>
+            ${frequencies.map(freq => `
+              <button class="filter-btn" data-frequency-filter data-frequency="${this.escapeHTML(freq)}" data-saas="${this.escapeHTML(saas.id)}">${this.escapeHTML(freq)}</button>
+            `).join('')}
+          </div>
+        `
+        : '';
+
       const cards = items.map((r) => {
         const base = this.resellerBase(r);
         const requirements = String(r.requirements || '').split('\n').map(line => line.trim()).filter(Boolean);
@@ -140,7 +153,7 @@ window.AAPPReports = {
           : `<p class="muted">Sin requisitos cargados.</p>`;
 
         return `
-          <article class="card">
+          <article class="card" data-frequency-card data-frequency="${this.escapeHTML(base.frequency)}">
             <div class="card-header">
               <span class="badge">${this.escapeHTML(this.resellerTypeLabel(r))}</span>
               <span class="title">${this.escapeHTML(base.name)}</span>
@@ -173,7 +186,7 @@ window.AAPPReports = {
       }).join('');
 
       return `
-        <section class="saas-section">
+        <section class="saas-section" data-saas-section="${this.escapeHTML(saas.id)}">
           <header class="saas-header">
             ${logo}
             <div>
@@ -181,6 +194,7 @@ window.AAPPReports = {
               <p>${this.escapeHTML(saas.url || '')}</p>
             </div>
           </header>
+          ${filters}
           <div class="cards">
             ${cards}
           </div>
@@ -218,6 +232,9 @@ window.AAPPReports = {
     .logo-placeholder { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; background: rgba(56,189,248,.15); color: var(--accent); font-weight: 700; font-size: 20px; }
     .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
     .card { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,.06); display: grid; gap: 16px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
+    .filter-btn { border: 1px solid rgba(255,255,255,.1); background: transparent; color: var(--text); padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .filter-btn.active { background: rgba(56,189,248,.2); border-color: rgba(56,189,248,.45); color: var(--accent); }
     .card-header { display: grid; gap: 6px; }
     .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--accent); }
     .title { font-size: 18px; font-weight: 700; }
@@ -239,6 +256,24 @@ window.AAPPReports = {
   <main class="container">
     ${sections || '<p class="muted">No hay planes revendedores cargados.</p>'}
   </main>
+  <script>
+    document.querySelectorAll('[data-frequency-filter]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const saasId = button.dataset.saas;
+        const frequency = button.dataset.frequency;
+        const section = document.querySelector('[data-saas-section="' + saasId + '"]');
+        if (!section) return;
+        section.querySelectorAll('[data-frequency-filter]').forEach((item) => {
+          item.classList.toggle('active', item === button);
+        });
+        section.querySelectorAll('[data-frequency-card]').forEach((card) => {
+          const cardFreq = card.dataset.frequency;
+          const show = frequency === 'all' || cardFreq === frequency;
+          card.style.display = show ? '' : 'none';
+        });
+      });
+    });
+  </script>
 </body>
 </html>`;
   }

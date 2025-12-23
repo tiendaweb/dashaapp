@@ -37,18 +37,86 @@ window.AAPPSeeds = {
         { id: s2, name: 'MiniTienda', url: 'https://minitienda.uno', logoUrl: 'https://minitienda.uno/logo.svg', registerUrl: 'https://minitienda.uno/register', loginUrl: 'https://minitienda.uno/login' }
       ],
       plans: [
-        { id: p1, saasId: s1, frequency: 'Por mes', title: 'Básico', description: 'Sitio/tienda + WhatsApp + panel editable', price: 100000 },
-        { id: p2, saasId: s1, frequency: 'Por año', title: 'Premium', description: 'Más páginas + soporte + optimizaciones', price: 900000 },
-        { id: p3, saasId: s2, frequency: 'Por año', title: 'Oferta Anual', description: 'Tienda conectada a WhatsApp + carrito + pedidos', price: 150000 }
+        {
+          id: p1,
+          saasId: s1,
+          frequency: 'Por mes',
+          title: 'Básico',
+          description: 'Sitio/tienda + WhatsApp + panel editable',
+          price: 100000,
+          features: [
+            { label: 'Panel editable', enabled: true },
+            { label: 'Dominio incluido', enabled: false }
+          ],
+          variableFeatures: [
+            { key: 'Productos', value: '50' },
+            { key: 'Usuarios', value: '2' }
+          ]
+        },
+        {
+          id: p2,
+          saasId: s1,
+          frequency: 'Por año',
+          title: 'Premium',
+          description: 'Más páginas + soporte + optimizaciones',
+          price: 900000,
+          features: [
+            { label: 'Panel editable', enabled: true },
+            { label: 'Dominio incluido', enabled: true }
+          ],
+          variableFeatures: [
+            { key: 'Productos', value: '200' },
+            { key: 'Usuarios', value: '5' }
+          ]
+        },
+        {
+          id: p3,
+          saasId: s2,
+          frequency: 'Por año',
+          title: 'Oferta Anual',
+          description: 'Tienda conectada a WhatsApp + carrito + pedidos',
+          price: 150000,
+          features: [
+            { label: 'Carrito', enabled: true },
+            { label: 'Soporte prioritario', enabled: false }
+          ],
+          variableFeatures: [
+            { key: 'Productos', value: '80' }
+          ]
+        }
       ],
       campaigns: [
         { id: this.uid(), saasId: s2, adName: 'Meta Ads • Tienda WhatsApp', date: this.todayISO(), dailySpend: 15000, totalSpend: 19500 },
         { id: this.uid(), saasId: s1, adName: 'Lead Ads • AAPP.SPACE', date: this.todayISO(), dailySpend: 20000, totalSpend: 26000 }
       ],
       extras: [
-        { id: e1, name: 'Dominio .com / .com.ar', price: 50000, frequency: 'Por año' },
-        { id: e2, name: 'Diseño de logo', price: 25000, frequency: 'Única vez' },
-        { id: e3, name: 'Setup / Configuración', price: 100000, frequency: 'Única vez' }
+        {
+          id: e1,
+          saasId: s1,
+          name: 'Dominio .com / .com.ar',
+          price: 50000,
+          frequency: 'Por año',
+          features: [{ label: 'Configuración incluida', enabled: true }],
+          variableFeatures: [{ key: 'Renovaciones', value: '1 año' }]
+        },
+        {
+          id: e2,
+          saasId: s1,
+          name: 'Diseño de logo',
+          price: 25000,
+          frequency: 'Única vez',
+          features: [{ label: 'Incluye isotipo', enabled: true }],
+          variableFeatures: [{ key: 'Opciones', value: '3' }]
+        },
+        {
+          id: e3,
+          saasId: s2,
+          name: 'Setup / Configuración',
+          price: 100000,
+          frequency: 'Única vez',
+          features: [{ label: 'Carga inicial', enabled: true }],
+          variableFeatures: [{ key: 'Productos', value: '20' }]
+        }
       ],
       resellers: [
         { id: r1, saasId: s1, sourceType: 'plan', sourceId: p1, costPrice: 60000, salePrice: 120000, deliveryTime: '2-3 días', requirements: 'Logo del cliente\nTexto de la propuesta' },

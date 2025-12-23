@@ -9,6 +9,14 @@ window.AAPPRelations = {
     if (!saasId) return [];
     return this.db.plans.filter(p => p.saasId === saasId);
   },
+  extrasBySaas(saasId) {
+    if (!saasId) return [];
+    return this.db.extras.filter(e => e.saasId === saasId || !e.saasId);
+  },
+  resellersBySaas(saasId) {
+    if (!saasId) return [];
+    return this.db.resellers.filter(r => r.saasId === saasId);
+  },
   campaignsBySaas(saasId) {
     if (!saasId) return [];
     return this.db.campaigns.filter(c => c.saasId === saasId);

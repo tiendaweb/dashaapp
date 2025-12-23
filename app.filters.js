@@ -7,7 +7,11 @@ window.AAPPFilters = {
 
   filteredPlans() {
     return this.db.plans.filter(p =>
-      this.matchQuery(p.title) || this.matchQuery(p.description) || this.matchQuery(this.saasName(p.saasId))
+      this.matchQuery(p.title) ||
+      this.matchQuery(p.description) ||
+      this.matchQuery(this.saasName(p.saasId)) ||
+      this.matchQuery((p.features || []).map(f => f.label).join(' ')) ||
+      this.matchQuery((p.variableFeatures || []).map(f => `${f.key} ${f.value}`).join(' '))
     );
   },
 
@@ -19,7 +23,11 @@ window.AAPPFilters = {
 
   filteredExtras() {
     return this.db.extras.filter(e =>
-      this.matchQuery(e.name) || this.matchQuery(e.frequency)
+      this.matchQuery(e.name) ||
+      this.matchQuery(e.frequency) ||
+      this.matchQuery(this.saasName(e.saasId)) ||
+      this.matchQuery((e.features || []).map(f => f.label).join(' ')) ||
+      this.matchQuery((e.variableFeatures || []).map(f => `${f.key} ${f.value}`).join(' '))
     );
   },
 
