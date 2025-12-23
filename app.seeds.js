@@ -2,12 +2,13 @@ window.AAPPSeeds = {
   seedMinimal({ persist = true } = {}) {
     this.db = {
       saas: [
-        { id: this.uid(), name: 'AAPP.SPACE', url: 'https://aapp.space', registerUrl: '', loginUrl: '' },
-        { id: this.uid(), name: 'MiniTienda', url: 'https://minitienda.uno', registerUrl: '', loginUrl: '' }
+        { id: this.uid(), name: 'AAPP.SPACE', url: 'https://aapp.space', logoUrl: '', registerUrl: '', loginUrl: '' },
+        { id: this.uid(), name: 'MiniTienda', url: 'https://minitienda.uno', logoUrl: '', registerUrl: '', loginUrl: '' }
       ],
       plans: [],
       campaigns: [],
       extras: [],
+      resellers: [],
       clients: [],
       expenses: [],
       meta: { version: 1, savedAt: null }
@@ -26,11 +27,14 @@ window.AAPPSeeds = {
     const e3 = this.uid();
     const c1 = this.uid();
     const c2 = this.uid();
+    const r1 = this.uid();
+    const r2 = this.uid();
+    const r3 = this.uid();
 
     this.db = {
       saas: [
-        { id: s1, name: 'AAPP.SPACE', url: 'https://aapp.space', registerUrl: 'https://aapp.space/register', loginUrl: 'https://aapp.space/login' },
-        { id: s2, name: 'MiniTienda', url: 'https://minitienda.uno', registerUrl: 'https://minitienda.uno/register', loginUrl: 'https://minitienda.uno/login' }
+        { id: s1, name: 'AAPP.SPACE', url: 'https://aapp.space', logoUrl: 'https://aapp.space/assets/logo.svg', registerUrl: 'https://aapp.space/register', loginUrl: 'https://aapp.space/login' },
+        { id: s2, name: 'MiniTienda', url: 'https://minitienda.uno', logoUrl: 'https://minitienda.uno/logo.svg', registerUrl: 'https://minitienda.uno/register', loginUrl: 'https://minitienda.uno/login' }
       ],
       plans: [
         { id: p1, saasId: s1, frequency: 'Por mes', title: 'Básico', description: 'Sitio/tienda + WhatsApp + panel editable', price: 100000 },
@@ -45,6 +49,11 @@ window.AAPPSeeds = {
         { id: e1, name: 'Dominio .com / .com.ar', price: 50000, frequency: 'Por año' },
         { id: e2, name: 'Diseño de logo', price: 25000, frequency: 'Única vez' },
         { id: e3, name: 'Setup / Configuración', price: 100000, frequency: 'Única vez' }
+      ],
+      resellers: [
+        { id: r1, saasId: s1, sourceType: 'plan', sourceId: p1, costPrice: 60000, salePrice: 120000, deliveryTime: '2-3 días', requirements: 'Logo del cliente\nTexto de la propuesta' },
+        { id: r2, saasId: s1, sourceType: 'plan', sourceId: p2, costPrice: 450000, salePrice: 850000, deliveryTime: '5-7 días', requirements: 'Branding completo\nAcceso a hosting actual' },
+        { id: r3, saasId: s2, sourceType: 'extra', sourceId: e1, costPrice: 30000, salePrice: 60000, deliveryTime: '24-48 hs', requirements: 'Nombre de dominio\nDatos de facturación' }
       ],
       clients: [
         { id: c1, name: 'Cliente Ejemplo 1', saasId: s2, planId: p3, extraIds: [e1], email: 'cliente1@mail.com', password: '1234', date: this.todayISO(), notes: 'Paga anual, pedir catálogo', links: 'Panel: /login' },

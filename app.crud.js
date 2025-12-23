@@ -1,7 +1,7 @@
 window.AAPPCrud = {
   // CRUD: SaaS
   resetSaasForm() {
-    this.forms.saas = { id: '', name: '', url: '', registerUrl: '', loginUrl: '' };
+    this.forms.saas = { id: '', name: '', url: '', logoUrl: '', registerUrl: '', loginUrl: '' };
   },
   editSaas(id) {
     const s = this.db.saas.find(x => x.id === id);
@@ -179,6 +179,73 @@ window.AAPPCrud = {
     this.persist();
   },
 
+  // CRUD: Resellers
+  resetResellerForm() {
+    this.forms.reseller = {
+      id: '',
+      saasId: '',
+      sourceType: 'plan',
+      sourceId: '',
+      costPrice: 0,
+      salePrice: 0,
+      deliveryTime: '',
+      requirements: ''
+    };
+  },
+  syncResellerSource() {
+    if (this.forms.reseller.sourceType === 'plan') {
+      const plans = this.plansBySaas(this.forms.reseller.saasId);
+      if (!plans.find(p => p.id === this.forms.reseller.sourceId)) {
+        this.forms.reseller.sourceId = plans[0]?.id || '';
+      }
+      return;
+    }
+    if (!this.db.extras.find(e => e.id === this.forms.reseller.sourceId)) {
+      this.forms.reseller.sourceId = this.db.extras[0]?.id || '';
+    }
+  },
+  editReseller(id) {
+    const r = this.db.resellers.find(x => x.id === id);
+    if (!r) return;
+    this.forms.reseller = JSON.parse(JSON.stringify(r));
+    this.openModal('resellerForm');
+  },
+  saveReseller() {
+    const f = this.forms.reseller;
+    if (!f.saasId) return alert('Seleccioná una empresa.');
+    if (!f.sourceType) return alert('Seleccioná el tipo.');
+    if (!f.sourceId) return alert('Seleccioná el plan o extra.');
+    f.costPrice = Number(f.costPrice || 0);
+    f.salePrice = Number(f.salePrice || 0);
+    if (!f.costPrice) return alert('Falta el precio de costo.');
+    if (!f.salePrice) return alert('Falta el precio sugerido.');
+
+    if (f.id) {
+      const idx = this.db.resellers.findIndex(x => x.id === f.id);
+      if (idx >= 0) this.db.resellers[idx] = { ...this.db.resellers[idx], ...f };
+    } else {
+      this.db.resellers.push({ ...f, id: this.uid() });
+    }
+    this.persist();
+    this.closeModal();
+    this.resetResellerForm();
+  },
+  delReseller(id) {
+    if (!confirm('¿Borrar este plan revendedor?')) return;
+    this.db.resellers = this.db.resellers.filter(x => x.id !== id);
+    this.persist();
+  },
+
+  refreshResellerHTML() {
+    this.resellerHtml = this.resellerPricingHTML();
+  },
+  async copyResellerHTML() {
+    this.refreshResellerHTML();
+    const ok = await this.copyToClipboard(this.resellerHtml);
+    if (ok) alert('HTML copiado.');
+    else alert('No se pudo copiar el HTML.');
+  },
+
   // Manual expenses
   addExpense() {
     const n = (this.expenseForm.name || '').trim();
@@ -207,14 +274,21 @@ window.AAPPCrud = {
       'id',
       'name',
       'url',
+      'logoUrl',
       'registerUrl',
       'loginUrl',
       'saasId',
       'planId',
+      'sourceType',
+      'sourceId',
       'frequency',
       'title',
       'description',
       'price',
+      'costPrice',
+      'salePrice',
+      'deliveryTime',
+      'requirements',
       'adName',
       'date',
       'dailySpend',
@@ -248,6 +322,7 @@ window.AAPPCrud = {
     this.db.plans.forEach((item) => rows.push(buildRow('plans', item)));
     this.db.campaigns.forEach((item) => rows.push(buildRow('campaigns', item)));
     this.db.extras.forEach((item) => rows.push(buildRow('extras', item)));
+    this.db.resellers.forEach((item) => rows.push(buildRow('resellers', item)));
     this.db.clients.forEach((item) => rows.push(buildRow('clients', item)));
     this.db.expenses.forEach((item) => rows.push(buildRow('expenses', item)));
     rows.push(buildRow('meta', {

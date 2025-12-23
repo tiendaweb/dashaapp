@@ -420,6 +420,7 @@
               <thead>
                 <tr class="text-left text-xs text-slate-300 border-b border-white/10">
                   <th class="p-3">Nombre</th>
+                  <th class="p-3">Logo</th>
                   <th class="p-3">URL</th>
                   <th class="p-3">Registro</th>
                   <th class="p-3">Login</th>
@@ -432,6 +433,17 @@
                 <template x-for="s in filteredSaaS()" :key="s.id">
                   <tr class="border-b border-white/5 hover:bg-white/5">
                     <td class="p-3 font-semibold" x-text="s.name"></td>
+                    <td class="p-3">
+                      <div class="flex items-center gap-2">
+                        <img
+                          class="w-8 h-8 rounded-xl object-contain bg-white/5 border border-white/10"
+                          :src="s.logoUrl"
+                          :alt="s.name + ' logo'"
+                          x-show="s.logoUrl"
+                        />
+                        <span class="text-slate-500 text-xs" x-show="!s.logoUrl">Sin logo</span>
+                      </div>
+                    </td>
                     <td class="p-3">
                       <a class="text-sky-300 hover:underline" :href="s.url" target="_blank" x-text="shortUrl(s.url)"></a>
                     </td>
@@ -461,7 +473,7 @@
                 </template>
 
                 <tr x-show="filteredSaaS().length===0">
-                  <td class="p-6 text-slate-400" colspan="7">
+                  <td class="p-6 text-slate-400" colspan="8">
                     No hay registros. Agregá tus SaaS (ej: aapp.space, minitienda.uno).
                   </td>
                 </tr>
@@ -788,6 +800,80 @@
         </div>
       </div>
 
+      <!-- Resellers -->
+      <div x-show="activeTab==='resellers'" x-transition.opacity>
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <h2 class="text-lg font-extrabold">Revendedores</h2>
+          <span class="badge text-xs px-2 py-1 rounded-lg">Planes + Extras • Costos • Precios sugeridos</span>
+          <div class="ml-auto flex flex-wrap items-center gap-2">
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetResellerForm(); openModal('resellerForm')">
+              <i class="fa-solid fa-plus mr-2 text-sky-300"></i>Agregar
+            </button>
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="openModal('resellerHtml')">
+              <i class="fa-solid fa-code mr-2 text-sky-300"></i>Generar HTML
+            </button>
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl p-4 mb-4 ring-blue-soft">
+          <div class="text-sm text-slate-300">
+            Armá precios revendedores basados en tus planes y extras actuales. Después generá una landing HTML estática con el detalle.
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl overflow-hidden">
+          <div class="overflow-auto scrollbar">
+            <table class="min-w-full table">
+              <thead>
+                <tr class="text-left text-xs text-slate-300 border-b border-white/10">
+                  <th class="p-3">Empresa</th>
+                  <th class="p-3">Tipo</th>
+                  <th class="p-3">Plan/Extra</th>
+                  <th class="p-3">Frecuencia</th>
+                  <th class="p-3">Costo</th>
+                  <th class="p-3">Venta sugerida</th>
+                  <th class="p-3">Entrega</th>
+                  <th class="p-3">Requisitos</th>
+                  <th class="p-3 w-40">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="text-sm">
+                <template x-for="r in filteredResellers()" :key="'reseller-' + r.id">
+                  <tr class="border-b border-white/5 hover:bg-white/5">
+                    <td class="p-3 text-sky-200 font-semibold" x-text="saasName(r.saasId)"></td>
+                    <td class="p-3">
+                      <span class="badge px-2 py-1 rounded-lg text-xs" x-text="resellerTypeLabel(r)"></span>
+                    </td>
+                    <td class="p-3 font-semibold" x-text="resellerBaseName(r)"></td>
+                    <td class="p-3 text-slate-300" x-text="resellerBaseFrequency(r)"></td>
+                    <td class="p-3 font-bold" x-text="fmtMoney(r.costPrice)"></td>
+                    <td class="p-3 font-bold text-sky-200" x-text="fmtMoney(r.salePrice)"></td>
+                    <td class="p-3 text-slate-300" x-text="r.deliveryTime || '-'"></td>
+                    <td class="p-3 text-slate-300" x-text="r.requirements || '-'"></td>
+                    <td class="p-3">
+                      <div class="flex gap-2">
+                        <button class="btn rounded-xl px-3 py-2 text-xs" @click="editReseller(r.id)">
+                          <i class="fa-solid fa-pen-to-square text-sky-300 mr-1"></i>Editar
+                        </button>
+                        <button class="btn-danger rounded-xl px-3 py-2 text-xs" @click="delReseller(r.id)">
+                          <i class="fa-solid fa-trash text-red-300 mr-1"></i>Borrar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+
+                <tr x-show="filteredResellers().length===0">
+                  <td class="p-6 text-slate-400" colspan="9">
+                    No hay planes revendedores todavía. Creá precios basados en planes y extras existentes.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- Balance -->
       <div x-show="activeTab==='balance'" x-transition.opacity>
         <div class="flex items-center gap-2 mb-3">
@@ -970,6 +1056,10 @@
             <div>
               <label class="text-xs text-slate-300">URL</label>
               <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.saas.url" placeholder="https://aapp.space" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">URL del logo</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.saas.logoUrl" placeholder="https://.../logo.png" />
             </div>
             <div>
               <label class="text-xs text-slate-300">Link de registro</label>
@@ -1194,6 +1284,105 @@
               <i class="fa-solid fa-floppy-disk text-sky-300 mr-2"></i>Guardar
             </button>
             <button class="btn rounded-xl px-3 py-2 text-sm" @click="closeModal()">Cancelar</button>
+          </div>
+        </div>
+
+        <!-- Reseller Form -->
+        <div x-show="modal.view==='resellerForm'">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-300">Empresa</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.reseller.saasId" @change="syncResellerSource()">
+                <option value="">Seleccionar</option>
+                <template x-for="s in db.saas" :key="'rs-'+s.id">
+                  <option :value="s.id" x-text="s.name"></option>
+                </template>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Tipo</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.reseller.sourceType" @change="syncResellerSource()">
+                <option value="plan">Plan</option>
+                <option value="extra">Extra</option>
+              </select>
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Plan / Extra</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.reseller.sourceId">
+                <option value="">Seleccionar</option>
+                <template x-if="forms.reseller.sourceType === 'plan'">
+                  <template x-for="p in plansBySaas(forms.reseller.saasId)" :key="'rs-p-'+p.id">
+                    <option :value="p.id" x-text="p.title + ' • ' + p.frequency + ' • ' + fmtMoney(p.price)"></option>
+                  </template>
+                </template>
+                <template x-if="forms.reseller.sourceType === 'extra'">
+                  <template x-for="e in db.extras" :key="'rs-e-'+e.id">
+                    <option :value="e.id" x-text="e.name + ' • ' + e.frequency + ' • ' + fmtMoney(e.price)"></option>
+                  </template>
+                </template>
+              </select>
+              <div class="text-xs text-slate-400 mt-1" x-show="forms.reseller.sourceType === 'plan' && plansBySaas(forms.reseller.saasId).length === 0">
+                Primero creá planes para esta empresa.
+              </div>
+              <div class="text-xs text-slate-400 mt-1" x-show="forms.reseller.sourceType === 'extra' && db.extras.length === 0">
+                Primero creá servicios extra.
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Precio de costo (ARS)</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.reseller.costPrice" />
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Precio sugerido (ARS)</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.reseller.salePrice" />
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Tiempo aprox. de entrega</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.reseller.deliveryTime" placeholder="Ej: 2-3 días" />
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Requisitos</label>
+              <textarea class="input rounded-xl px-3 py-2 w-full min-h-[90px]" x-model="forms.reseller.requirements" placeholder="Requisitos o materiales necesarios. Uno por línea."></textarea>
+            </div>
+          </div>
+
+          <div class="mt-3 text-sm text-slate-300">
+            Precio base actual: <span class="text-sky-200 font-extrabold" x-text="fmtMoney(resellerBasePrice(forms.reseller))"></span>
+            <span class="text-slate-400 ml-2" x-text="resellerBaseFrequency(forms.reseller)"></span>
+          </div>
+
+          <div class="mt-4 flex gap-2">
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="saveReseller()">
+              <i class="fa-solid fa-floppy-disk text-sky-300 mr-2"></i>Guardar
+            </button>
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="closeModal()">Cancelar</button>
+          </div>
+        </div>
+
+        <!-- Reseller HTML -->
+        <div x-show="modal.view==='resellerHtml'">
+          <div class="glass rounded-2xl p-4 border border-white/10">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div>
+                <div class="font-extrabold">HTML estático</div>
+                <div class="text-sm text-slate-300">Copiá el HTML para publicar una página de pricing.</div>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn rounded-xl px-3 py-2 text-sm" @click="refreshResellerHTML()">
+                  <i class="fa-solid fa-rotate text-sky-300 mr-2"></i>Actualizar
+                </button>
+                <button class="btn rounded-xl px-3 py-2 text-sm" @click="copyResellerHTML()">
+                  <i class="fa-solid fa-copy text-sky-300 mr-2"></i>Copiar HTML
+                </button>
+              </div>
+            </div>
+            <textarea class="input rounded-2xl px-3 py-2 w-full min-h-[220px]" x-model="resellerHtml" readonly></textarea>
           </div>
         </div>
 

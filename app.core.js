@@ -26,10 +26,11 @@ window.AAPPCore = {
   normalizeDB(input) {
     const safe = (arr) => Array.isArray(arr) ? arr : [];
     return {
-      saas: safe(input.saas),
+      saas: safe(input.saas).map((s) => ({ logoUrl: '', ...s })),
       plans: safe(input.plans),
       campaigns: safe(input.campaigns),
       extras: safe(input.extras),
+      resellers: safe(input.resellers),
       clients: safe(input.clients),
       expenses: safe(input.expenses),
       meta: input.meta || { version: 1, savedAt: null }
@@ -65,6 +66,8 @@ window.AAPPCore = {
       campaignForm: (this.forms.campaign.id ? 'Editar campaña' : 'Nueva campaña'),
       extraForm: (this.forms.extra.id ? 'Editar servicio extra' : 'Nuevo servicio extra'),
       clientForm: (this.forms.client.id ? 'Editar cliente' : 'Nuevo cliente'),
+      resellerForm: (this.forms.reseller.id ? 'Editar plan revendedor' : 'Nuevo plan revendedor'),
+      resellerHtml: 'Página de planes para revendedores',
       dataTools: 'Datos • Exportar / Importar / Demo'
     };
     this.modal.title = titles[view] || 'Formulario';
@@ -72,6 +75,7 @@ window.AAPPCore = {
     // defaults
     if (view === 'campaignForm' && !this.forms.campaign.date) this.forms.campaign.date = this.todayISO();
     if (view === 'clientForm' && !this.forms.client.date) this.forms.client.date = this.todayISO();
+    if (view === 'resellerHtml') this.refreshResellerHTML();
   },
 
   closeModal() {
