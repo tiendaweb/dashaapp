@@ -11,7 +11,9 @@ window.AAPPState = () => ({
     { key: 'campaigns', label: 'Campañas', icon: 'fa-bullhorn' },
     { key: 'clients', label: 'Clientes', icon: 'fa-users' },
     { key: 'extras', label: 'Extras', icon: 'fa-puzzle-piece' },
-    { key: 'resellers', label: 'Revendedores', icon: 'fa-handshake' },
+    { key: 'resellers', label: 'Precios Revendedor', icon: 'fa-handshake' },
+    { key: 'partners', label: 'Partners', icon: 'fa-people-group' },
+    { key: 'pos', label: 'POS', icon: 'fa-cash-register' },
     { key: 'balance', label: 'Balance', icon: 'fa-chart-line' },
     { key: 'help', label: 'Ayuda', icon: 'fa-circle-question' },
   ],
@@ -22,7 +24,9 @@ window.AAPPState = () => ({
     campaigns: [],
     extras: [],
     resellers: [],
+    partners: [],
     clients: [],
+    posSales: [],
     expenses: [], // egresos manuales
     meta: { version: 1, savedAt: null }
   },
@@ -70,6 +74,25 @@ window.AAPPState = () => ({
       salePrice: 0,
       deliveryTime: '',
       requirements: ''
+    },
+    partner: {
+      id: '',
+      name: '',
+      company: '',
+      email: '',
+      phone: '',
+      commission: 0,
+      notes: ''
+    },
+    pos: {
+      buyerName: '',
+      buyerEmail: '',
+      saasId: '',
+      planId: '',
+      extraIds: [],
+      date: '',
+      paymentMethod: 'Transferencia',
+      notes: ''
     }
   }
 });

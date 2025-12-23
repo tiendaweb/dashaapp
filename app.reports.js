@@ -123,6 +123,16 @@ window.AAPPReports = {
     return this.totalIncomeEstimate() - this.totalExpensesManual() - this.totalAdsSpendAllTime();
   },
 
+  posSaleTotal(sale) {
+    if (!sale) return 0;
+    const plan = this.db.plans.find(p => p.id === sale.planId);
+    const planPrice = Number(plan?.price || 0);
+    const extrasTotal = (sale.extraIds || []).reduce((acc, id) => acc + this.extraPrice(id), 0);
+    const computed = planPrice + extrasTotal;
+    const manualAmount = Number(sale.amount || 0);
+    return manualAmount || computed;
+  },
+
   resellerPricingHTML() {
     const sections = this.db.saas.map((saas) => {
       const items = this.db.resellers.filter(r => r.saasId === saas.id);
@@ -207,7 +217,7 @@ window.AAPPReports = {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Planes para revendedores</title>
+  <title>Precios revendedor</title>
   <style>
     :root {
       color-scheme: light;
@@ -250,11 +260,11 @@ window.AAPPReports = {
 </head>
 <body>
   <section class="hero">
-    <h1>Planes para revendedores</h1>
+    <h1>Precios revendedor</h1>
     <p>Información actualizada de planes y servicios con costos, precios sugeridos y requisitos.</p>
   </section>
   <main class="container">
-    ${sections || '<p class="muted">No hay planes revendedores cargados.</p>'}
+    ${sections || '<p class="muted">No hay precios revendedor cargados.</p>'}
   </main>
   <script>
     document.querySelectorAll('[data-frequency-filter]').forEach((button) => {

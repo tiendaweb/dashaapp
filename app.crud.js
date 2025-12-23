@@ -290,6 +290,107 @@ window.AAPPCrud = {
     this.persist();
   },
 
+  // CRUD: Partners
+  resetPartnerForm() {
+    this.forms.partner = { id: '', name: '', company: '', email: '', phone: '', commission: 0, notes: '' };
+  },
+  editPartner(id) {
+    const p = this.db.partners.find(x => x.id === id);
+    if (!p) return;
+    this.forms.partner = JSON.parse(JSON.stringify(p));
+    this.openModal('partnerForm');
+  },
+  savePartner() {
+    const f = this.forms.partner;
+    if (!String(f.name || '').trim()) return alert('Falta el nombre.');
+    f.commission = Number(f.commission || 0);
+    if (f.id) {
+      const idx = this.db.partners.findIndex(x => x.id === f.id);
+      if (idx >= 0) this.db.partners[idx] = { ...this.db.partners[idx], ...f };
+    } else {
+      this.db.partners.push({ ...f, id: this.uid() });
+    }
+    this.persist();
+    this.closeModal();
+    this.resetPartnerForm();
+  },
+  delPartner(id) {
+    if (!confirm('¿Borrar partner?')) return;
+    this.db.partners = this.db.partners.filter(x => x.id !== id);
+    this.persist();
+  },
+
+  // POS
+  resetPosForm() {
+    this.forms.pos = {
+      buyerName: '',
+      buyerEmail: '',
+      saasId: '',
+      planId: '',
+      extraIds: [],
+      date: this.todayISO(),
+      paymentMethod: 'Transferencia',
+      notes: ''
+    };
+  },
+  syncPosPlanToCompany() {
+    const saasId = this.forms.pos.saasId;
+    const plan = this.db.plans.find(p => p.id === this.forms.pos.planId);
+    if (plan && plan.saasId !== saasId) this.forms.pos.planId = '';
+    const allowedExtraIds = new Set(this.extrasBySaas(saasId).map(e => e.id));
+    this.forms.pos.extraIds = (this.forms.pos.extraIds || []).filter(id => allowedExtraIds.has(id));
+  },
+  togglePosExtra(extraId, checked) {
+    const list = new Set(this.forms.pos.extraIds || []);
+    if (checked) list.add(extraId);
+    else list.delete(extraId);
+    this.forms.pos.extraIds = Array.from(list);
+  },
+  savePosSale() {
+    const f = this.forms.pos;
+    if (!String(f.buyerName || '').trim()) return alert('Falta el nombre del cliente.');
+    if (!f.saasId) return alert('Seleccioná una empresa.');
+    if (!f.planId) return alert('Seleccioná un plan.');
+    if (!String(f.date || '').trim()) f.date = this.todayISO();
+
+    const totalAmount = this.posSaleTotal({ planId: f.planId, extraIds: f.extraIds, amount: 0 });
+
+    this.db.posSales.push({
+      id: this.uid(),
+      buyerName: f.buyerName,
+      buyerEmail: f.buyerEmail,
+      saasId: f.saasId,
+      planId: f.planId,
+      extraIds: f.extraIds || [],
+      date: f.date,
+      paymentMethod: f.paymentMethod || '',
+      amount: totalAmount,
+      notes: f.notes || ''
+    });
+
+    this.db.clients.push({
+      id: this.uid(),
+      name: f.buyerName,
+      saasId: f.saasId,
+      planId: f.planId,
+      extraIds: f.extraIds || [],
+      email: f.buyerEmail || '',
+      password: '',
+      date: f.date,
+      notes: f.notes ? `POS: ${f.notes}` : 'POS: venta rápida',
+      links: ''
+    });
+
+    this.persist();
+    this.resetPosForm();
+    alert('Venta registrada.');
+  },
+  removePosSale(id) {
+    if (!confirm('¿Borrar esta venta POS?')) return;
+    this.db.posSales = this.db.posSales.filter(x => x.id !== id);
+    this.persist();
+  },
+
   ensureFeatureLists(formKey) {
     const form = this.forms[formKey];
     if (!Array.isArray(form.features)) form.features = [];
@@ -382,15 +483,17 @@ window.AAPPCrud = {
   },
 
   // Data tools
-  exportAllCSV() {
+  buildExportRows() {
     const header = [
       'area',
       'id',
       'name',
+      'company',
       'url',
       'logoUrl',
       'registerUrl',
       'loginUrl',
+      'phone',
       'saasId',
       'planId',
       'sourceType',
@@ -409,26 +512,28 @@ window.AAPPCrud = {
       'totalSpend',
       'extraIds',
       'email',
+      'buyerName',
+      'buyerEmail',
+      'paymentMethod',
       'password',
       'notes',
       'links',
       'amount',
+      'commission',
       'savedAt',
       'metaVersion'
     ];
-    const escapeCSV = (value) => {
+    const normalizeCell = (value) => {
       if (value === null || value === undefined) return '';
-      const str = String(value);
-      if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
-      return str;
+      return String(value);
     };
     const buildRow = (area, data = {}) => header.map((key) => {
-      if (key === 'area') return escapeCSV(area);
+      if (key === 'area') return normalizeCell(area);
       if (key === 'extraIds') {
         const extras = Array.isArray(data.extraIds) ? data.extraIds.join('|') : data.extraIds;
-        return escapeCSV(extras);
+        return normalizeCell(extras);
       }
-      return escapeCSV(data[key]);
+      return normalizeCell(data[key]);
     });
 
     const rows = [header];
@@ -437,23 +542,210 @@ window.AAPPCrud = {
     this.db.campaigns.forEach((item) => rows.push(buildRow('campaigns', item)));
     this.db.extras.forEach((item) => rows.push(buildRow('extras', item)));
     this.db.resellers.forEach((item) => rows.push(buildRow('resellers', item)));
+    this.db.partners.forEach((item) => rows.push(buildRow('partners', item)));
     this.db.clients.forEach((item) => rows.push(buildRow('clients', item)));
+    this.db.posSales.forEach((item) => rows.push(buildRow('posSales', item)));
     this.db.expenses.forEach((item) => rows.push(buildRow('expenses', item)));
     rows.push(buildRow('meta', {
       savedAt: this.db.meta?.savedAt || '',
       metaVersion: this.db.meta?.version || ''
     }));
 
-    const csv = rows.map((row) => row.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `aapp_manager_export_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    return rows;
+  },
+
+  exportAllExcel() {
+    if (!window.XLSX) {
+      alert('No se encontró la librería XLSX.');
+      return;
+    }
+    const rows = this.buildExportRows();
+    const ws = window.XLSX.utils.aoa_to_sheet(rows);
+    const wb = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb, ws, 'AAPP');
+    window.XLSX.writeFile(wb, `aapp_manager_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  },
+
+  importExcelFile(event) {
+    if (!window.XLSX) {
+      alert('No se encontró la librería XLSX.');
+      return;
+    }
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+    if (!confirm('Esto reemplaza todos tus datos actuales. ¿Continuar?')) {
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = window.XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.SheetNames?.[0];
+        if (!firstSheet) {
+          alert('El archivo no tiene hojas válidas.');
+          return;
+        }
+        const rows = window.XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1, raw: false });
+        const parsed = this.parseImportRows(rows);
+        if (!parsed) return;
+        this.db = this.normalizeDB(parsed);
+        this.persist();
+        alert('Importado OK.');
+        this.closeModal();
+      } catch (e) {
+        alert('No se pudo leer el Excel.');
+      } finally {
+        event.target.value = '';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  },
+
+  parseImportRows(rows) {
+    if (!Array.isArray(rows) || rows.length < 2) {
+      alert('El Excel no tiene datos.');
+      return null;
+    }
+    const header = rows[0].map((h) => String(h || '').trim());
+    if (!header.includes('area')) {
+      alert('El Excel no tiene la columna "area".');
+      return null;
+    }
+
+    const result = {
+      saas: [],
+      plans: [],
+      campaigns: [],
+      extras: [],
+      resellers: [],
+      partners: [],
+      clients: [],
+      posSales: [],
+      expenses: [],
+      meta: { version: 1, savedAt: null }
+    };
+
+    const toNumber = (value) => {
+      if (value === null || value === undefined || value === '') return 0;
+      const normalized = String(value).replace(/[^0-9.,-]/g, '').replace(',', '.');
+      const parsed = Number(normalized);
+      return Number.isNaN(parsed) ? 0 : parsed;
+    };
+
+    rows.slice(1).forEach((row) => {
+      if (!row || !row.length) return;
+      const record = {};
+      header.forEach((key, idx) => {
+        record[key] = row[idx] ?? '';
+      });
+      const area = String(record.area || '').trim();
+      if (!area) return;
+      const id = String(record.id || '') || this.uid();
+      const extraIds = String(record.extraIds || '')
+        .split('|')
+        .map(item => item.trim())
+        .filter(Boolean);
+
+      if (area === 'saas') {
+        result.saas.push({
+          id,
+          name: record.name || '',
+          url: record.url || '',
+          logoUrl: record.logoUrl || '',
+          registerUrl: record.registerUrl || '',
+          loginUrl: record.loginUrl || ''
+        });
+      } else if (area === 'plans') {
+        result.plans.push({
+          id,
+          saasId: record.saasId || '',
+          frequency: record.frequency || '',
+          title: record.title || '',
+          description: record.description || '',
+          price: toNumber(record.price)
+        });
+      } else if (area === 'campaigns') {
+        result.campaigns.push({
+          id,
+          saasId: record.saasId || '',
+          adName: record.adName || '',
+          date: record.date || '',
+          dailySpend: toNumber(record.dailySpend),
+          totalSpend: toNumber(record.totalSpend)
+        });
+      } else if (area === 'extras') {
+        result.extras.push({
+          id,
+          saasId: record.saasId || '',
+          name: record.name || '',
+          price: toNumber(record.price),
+          frequency: record.frequency || ''
+        });
+      } else if (area === 'resellers') {
+        result.resellers.push({
+          id,
+          saasId: record.saasId || '',
+          sourceType: record.sourceType || '',
+          sourceId: record.sourceId || '',
+          costPrice: toNumber(record.costPrice),
+          salePrice: toNumber(record.salePrice),
+          deliveryTime: record.deliveryTime || '',
+          requirements: record.requirements || ''
+        });
+      } else if (area === 'partners') {
+        result.partners.push({
+          id,
+          name: record.name || '',
+          company: record.company || '',
+          email: record.email || '',
+          phone: record.phone || '',
+          commission: toNumber(record.commission),
+          notes: record.notes || ''
+        });
+      } else if (area === 'clients') {
+        result.clients.push({
+          id,
+          name: record.name || '',
+          saasId: record.saasId || '',
+          planId: record.planId || '',
+          extraIds,
+          email: record.email || '',
+          password: record.password || '',
+          date: record.date || '',
+          notes: record.notes || '',
+          links: record.links || ''
+        });
+      } else if (area === 'posSales') {
+        result.posSales.push({
+          id,
+          buyerName: record.buyerName || '',
+          buyerEmail: record.buyerEmail || '',
+          saasId: record.saasId || '',
+          planId: record.planId || '',
+          extraIds,
+          date: record.date || '',
+          paymentMethod: record.paymentMethod || '',
+          amount: toNumber(record.amount),
+          notes: record.notes || ''
+        });
+      } else if (area === 'expenses') {
+        result.expenses.push({
+          name: record.name || '',
+          amount: toNumber(record.amount),
+          date: record.date || ''
+        });
+      } else if (area === 'meta') {
+        result.meta = {
+          savedAt: record.savedAt || '',
+          version: toNumber(record.metaVersion) || 1
+        };
+      }
+    });
+
+    return result;
   },
 
   exportJSON() {
