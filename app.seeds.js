@@ -9,7 +9,9 @@ window.AAPPSeeds = {
       campaigns: [],
       extras: [],
       resellers: [],
+      partners: [],
       clients: [],
+      posSales: [],
       expenses: [],
       meta: { version: 1, savedAt: null }
     };
@@ -30,6 +32,8 @@ window.AAPPSeeds = {
     const r1 = this.uid();
     const r2 = this.uid();
     const r3 = this.uid();
+    const partner1 = this.uid();
+    const sale1 = this.uid();
 
     this.db = {
       saas: [
@@ -86,8 +90,8 @@ window.AAPPSeeds = {
         }
       ],
       campaigns: [
-        { id: this.uid(), saasId: s2, adName: 'Meta Ads • Tienda WhatsApp', date: this.todayISO(), dailySpend: 15000, totalSpend: 19500 },
-        { id: this.uid(), saasId: s1, adName: 'Lead Ads • AAPP.SPACE', date: this.todayISO(), dailySpend: 20000, totalSpend: 26000 }
+        { id: this.uid(), saasId: s2, adName: 'Meta Ads • Tienda WhatsApp', date: this.todayISO(), dailySpend: 15000, totalSpend: 19500, reach: 12000, views: 18000, costPerConversation: 800, notes: 'Campaña con foco en catálogo.' },
+        { id: this.uid(), saasId: s1, adName: 'Lead Ads • AAPP.SPACE', date: this.todayISO(), dailySpend: 20000, totalSpend: 26000, reach: 15000, views: 24000, costPerConversation: 950, notes: 'Optimizada para leads.' }
       ],
       extras: [
         {
@@ -123,9 +127,15 @@ window.AAPPSeeds = {
         { id: r2, saasId: s1, sourceType: 'plan', sourceId: p2, costPrice: 450000, salePrice: 850000, deliveryTime: '5-7 días', requirements: 'Branding completo\nAcceso a hosting actual' },
         { id: r3, saasId: s2, sourceType: 'extra', sourceId: e1, costPrice: 30000, salePrice: 60000, deliveryTime: '24-48 hs', requirements: 'Nombre de dominio\nDatos de facturación' }
       ],
+      partners: [
+        { id: partner1, name: 'Partner Norte', company: 'Agencia Delta', email: 'partner@delta.com', phone: '+54 11 5555-2222', commission: 15, notes: 'Especialista en ecommerce.' }
+      ],
       clients: [
         { id: c1, name: 'Cliente Ejemplo 1', saasId: s2, planId: p3, extraIds: [e1], email: 'cliente1@mail.com', password: '1234', date: this.todayISO(), notes: 'Paga anual, pedir catálogo', links: 'Panel: /login' },
         { id: c2, name: 'Cliente Ejemplo 2', saasId: s1, planId: p1, extraIds: [e2, e3], email: 'cliente2@mail.com', password: 'abcd', date: this.todayISO(), notes: 'Quiere activar hoy', links: 'Drive: carpeta propuesta' }
+      ],
+      posSales: [
+        { id: sale1, buyerName: 'Local Demo', buyerEmail: 'venta@demo.com', saasId: s1, planId: p1, extraIds: [e2], date: this.todayISO(), paymentMethod: 'Transferencia', amount: 125000, notes: 'Venta rápida POS.' }
       ],
       expenses: [
         { name: 'Hosting / VPS', amount: 25000, date: this.todayISO() }

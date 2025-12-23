@@ -15,6 +15,7 @@
   <script defer src="app.filters.js"></script>
   <script defer src="app.relations.js"></script>
   <script defer src="app.reports.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script defer src="app.crud.js"></script>
   <script defer src="app.seeds.js"></script>
   <script defer src="app.js"></script>
@@ -142,9 +143,9 @@
               <span class="hidden sm:inline">Datos</span>
             </button>
 
-            <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="exportAllCSV()">
-              <i class="fa-solid fa-file-csv text-sky-300"></i>
-              <span class="hidden sm:inline">Exportar CSV</span>
+            <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="exportAllExcel()">
+              <i class="fa-solid fa-file-excel text-sky-300"></i>
+              <span class="hidden sm:inline">Exportar Excel</span>
             </button>
           </div>
         </div>
@@ -622,6 +623,10 @@
                   <th class="p-3">Gasto por día</th>
                   <th class="p-3">Impuestos</th>
                   <th class="p-3">Gasto total</th>
+                  <th class="p-3">Alcance</th>
+                  <th class="p-3">Visualizaciones</th>
+                  <th class="p-3">Costo por conversación</th>
+                  <th class="p-3">Notas</th>
                   <th class="p-3 w-40">Acciones</th>
                 </tr>
               </thead>
@@ -634,6 +639,10 @@
                     <td class="p-3 font-bold" x-text="fmtMoney(c.dailySpend)"></td>
                     <td class="p-3" x-text="fmtMoney(calcTaxes(c))"></td>
                     <td class="p-3 font-extrabold" x-text="fmtMoney(calcTotalWithTaxes(c))"></td>
+                    <td class="p-3 text-slate-300" x-text="c.reach || '-'"></td>
+                    <td class="p-3 text-slate-300" x-text="c.views || '-'"></td>
+                    <td class="p-3 text-slate-300" x-text="c.costPerConversation ? fmtMoney(c.costPerConversation) : '-'"></td>
+                    <td class="p-3 text-slate-300" x-text="c.notes || '-'"></td>
                     <td class="p-3">
                       <div class="flex gap-2">
                         <button class="btn rounded-xl px-3 py-2 text-xs" @click="editCampaign(c.id)">
@@ -648,7 +657,7 @@
                 </template>
 
                 <tr x-show="filteredCampaigns().length===0">
-                  <td class="p-6 text-slate-400" colspan="7">
+                  <td class="p-6 text-slate-400" colspan="11">
                     Sin campañas. Registrá anuncios con gasto por día y total.
                   </td>
                 </tr>
@@ -857,7 +866,7 @@
       <!-- Resellers -->
       <div x-show="activeTab==='resellers'" x-transition.opacity>
         <div class="flex flex-wrap items-center gap-2 mb-3">
-          <h2 class="text-lg font-extrabold">Revendedores</h2>
+          <h2 class="text-lg font-extrabold">Precios Revendedor</h2>
           <span class="badge text-xs px-2 py-1 rounded-lg">Planes + Extras • Costos • Precios sugeridos</span>
           <div class="ml-auto flex flex-wrap items-center gap-2">
             <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetPlanForm(); openModal('planForm')">
@@ -874,7 +883,7 @@
 
         <div class="glass rounded-2xl p-4 mb-4 ring-blue-soft">
           <div class="text-sm text-slate-300">
-            Armá precios revendedores basados en tus planes y extras actuales. Después generá una landing HTML estática con el detalle.
+            Armá precios revendedor basados en tus planes y extras actuales. Después generá una landing HTML estática con el detalle.
           </div>
         </div>
 
@@ -922,7 +931,254 @@
 
                 <tr x-show="filteredResellers().length===0">
                   <td class="p-6 text-slate-400" colspan="9">
-                    No hay planes revendedores todavía. Creá precios basados en planes y extras existentes.
+                    No hay precios revendedor todavía. Creá precios basados en planes y extras existentes.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Partners -->
+      <div x-show="activeTab==='partners'" x-transition.opacity>
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <h2 class="text-lg font-extrabold">Partners</h2>
+          <span class="badge text-xs px-2 py-1 rounded-lg">Red • Contactos • Comisión</span>
+          <div class="ml-auto flex items-center gap-2">
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetPartnerForm(); openModal('partnerForm')">
+              <i class="fa-solid fa-plus mr-2 text-sky-300"></i>Agregar partner
+            </button>
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl overflow-hidden">
+          <div class="overflow-auto scrollbar">
+            <table class="min-w-full table">
+              <thead>
+                <tr class="text-left text-xs text-slate-300 border-b border-white/10">
+                  <th class="p-3">Nombre</th>
+                  <th class="p-3">Empresa</th>
+                  <th class="p-3">Email</th>
+                  <th class="p-3">Teléfono</th>
+                  <th class="p-3">Comisión</th>
+                  <th class="p-3">Notas</th>
+                  <th class="p-3 w-36">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="text-sm">
+                <template x-for="p in filteredPartners()" :key="'partner-' + p.id">
+                  <tr class="border-b border-white/5 hover:bg-white/5">
+                    <td class="p-3 font-semibold" x-text="p.name"></td>
+                    <td class="p-3 text-slate-300" x-text="p.company || '-'"></td>
+                    <td class="p-3 text-sky-200" x-text="p.email || '-'"></td>
+                    <td class="p-3 text-slate-300" x-text="p.phone || '-'"></td>
+                    <td class="p-3 text-slate-200" x-text="p.commission ? p.commission + '%' : '-'"></td>
+                    <td class="p-3 text-slate-300" x-text="p.notes || '-'"></td>
+                    <td class="p-3">
+                      <div class="flex gap-2">
+                        <button class="btn rounded-xl px-3 py-2 text-xs" @click="editPartner(p.id)">
+                          <i class="fa-solid fa-pen-to-square text-sky-300 mr-1"></i>Editar
+                        </button>
+                        <button class="btn-danger rounded-xl px-3 py-2 text-xs" @click="delPartner(p.id)">
+                          <i class="fa-solid fa-trash text-red-300 mr-1"></i>Borrar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+
+                <tr x-show="filteredPartners().length===0">
+                  <td class="p-6 text-slate-400" colspan="7">
+                    No hay partners registrados todavía.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- POS -->
+      <div x-show="activeTab==='pos'" x-transition.opacity>
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <h2 class="text-lg font-extrabold">POS</h2>
+          <span class="badge text-xs px-2 py-1 rounded-lg">Venta rápida • Planes + Extras</span>
+          <div class="ml-auto flex items-center gap-2">
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetPosForm()">
+              <i class="fa-solid fa-rotate text-sky-300 mr-2"></i>Limpiar
+            </button>
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl p-4 ring-blue-soft mb-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs text-slate-300">Cliente</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.pos.buyerName" placeholder="Nombre y apellido" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Email</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.pos.buyerEmail" placeholder="cliente@mail.com" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Empresa</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.pos.saasId" @change="syncPosPlanToCompany()">
+                <option value="">Seleccionar</option>
+                <template x-for="s in db.saas" :key="'pos-saas-'+s.id">
+                  <option :value="s.id" x-text="s.name"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Plan</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.pos.planId">
+                <option value="">Seleccionar plan</option>
+                <template x-for="p in plansBySaas(forms.pos.saasId)" :key="'pos-plan-'+p.id">
+                  <option :value="p.id" x-text="p.title + ' • ' + fmtMoney(p.price)"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Fecha</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="date" x-model="forms.pos.date" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Método de pago</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.pos.paymentMethod">
+                <option>Transferencia</option>
+                <option>Tarjeta</option>
+                <option>Mercado Pago</option>
+                <option>Efectivo</option>
+                <option>Otro</option>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Extras</label>
+              <div class="flex flex-wrap gap-2">
+                <template x-for="e in extrasBySaas(forms.pos.saasId)" :key="'pos-extra-'+e.id">
+                  <label class="flex items-center gap-2 text-xs border border-white/10 rounded-xl px-3 py-2">
+                    <input type="checkbox" class="accent-sky-400" :checked="(forms.pos.extraIds || []).includes(e.id)" @change="togglePosExtra(e.id, $event.target.checked)" />
+                    <span x-text="e.name"></span>
+                    <span class="text-slate-400" x-text="fmtMoney(e.price)"></span>
+                  </label>
+                </template>
+                <div class="text-xs text-slate-400" x-show="extrasBySaas(forms.pos.saasId).length===0">Sin extras.</div>
+              </div>
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Notas</label>
+              <textarea class="input rounded-xl px-3 py-2 w-full min-h-[90px]" x-model="forms.pos.notes" placeholder="Notas de la venta"></textarea>
+            </div>
+          </div>
+
+          <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm text-slate-300">
+              Total estimado: <span class="text-sky-200 font-extrabold" x-text="fmtMoney(posSaleTotal(forms.pos))"></span>
+            </div>
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="savePosSale()">
+              <i class="fa-solid fa-cart-shopping text-sky-300 mr-2"></i>Registrar venta
+            </button>
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl p-4 ring-blue-soft mb-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div>
+              <div class="font-extrabold">POS Campañas</div>
+              <div class="text-sm text-slate-300">Registrá una campaña publicitaria rápido.</div>
+            </div>
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetPosCampaignForm()">
+              <i class="fa-solid fa-rotate text-sky-300 mr-2"></i>Limpiar
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs text-slate-300">Empresa</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.posCampaign.saasId">
+                <option value="">Seleccionar</option>
+                <template x-for="s in db.saas" :key="'pos-camp-saas-'+s.id">
+                  <option :value="s.id" x-text="s.name"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Fecha</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="date" x-model="forms.posCampaign.date" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Anuncio / Nombre</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.posCampaign.adName" placeholder="Meta Ads / Lead Ads / etc" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Gasto por día (ARS)</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.posCampaign.dailySpend" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Gasto total (ARS)</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.posCampaign.totalSpend" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Alcance</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.posCampaign.reach" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Visualizaciones</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.posCampaign.views" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Costo por conversación (ARS)</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.posCampaign.costPerConversation" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Notas</label>
+              <textarea class="input rounded-xl px-3 py-2 w-full min-h-[90px]" x-model="forms.posCampaign.notes" placeholder="Notas y observaciones"></textarea>
+            </div>
+          </div>
+
+          <div class="mt-4 flex justify-end">
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="savePosCampaign()">
+              <i class="fa-solid fa-bullhorn text-sky-300 mr-2"></i>Registrar campaña
+            </button>
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl overflow-hidden">
+          <div class="overflow-auto scrollbar">
+            <table class="min-w-full table">
+              <thead>
+                <tr class="text-left text-xs text-slate-300 border-b border-white/10">
+                  <th class="p-3">Fecha</th>
+                  <th class="p-3">Cliente</th>
+                  <th class="p-3">Empresa</th>
+                  <th class="p-3">Plan</th>
+                  <th class="p-3">Extras</th>
+                  <th class="p-3">Pago</th>
+                  <th class="p-3">Total</th>
+                  <th class="p-3 w-28">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="text-sm">
+                <template x-for="sale in filteredPosSales()" :key="'pos-sale-'+sale.id">
+                  <tr class="border-b border-white/5 hover:bg-white/5">
+                    <td class="p-3 text-slate-300" x-text="sale.date || '-'"></td>
+                    <td class="p-3 font-semibold" x-text="sale.buyerName"></td>
+                    <td class="p-3 text-sky-200" x-text="saasName(sale.saasId)"></td>
+                    <td class="p-3 text-slate-300" x-text="planTitle(sale.planId)"></td>
+                    <td class="p-3 text-slate-300" x-text="(sale.extraIds || []).map(id => extraName(id)).join(', ') || '-'"></td>
+                    <td class="p-3 text-slate-300" x-text="sale.paymentMethod || '-'"></td>
+                    <td class="p-3 font-bold" x-text="fmtMoney(posSaleTotal(sale))"></td>
+                    <td class="p-3">
+                      <button class="btn-danger rounded-xl px-3 py-2 text-xs" @click="removePosSale(sale.id)">
+                        <i class="fa-solid fa-trash text-red-300 mr-1"></i>Borrar
+                      </button>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="filteredPosSales().length===0">
+                  <td class="p-6 text-slate-400" colspan="8">
+                    Sin ventas registradas. Usá el formulario para cargar una compra rápida.
                   </td>
                 </tr>
               </tbody>
@@ -1067,6 +1323,7 @@
               Acá calculamos: <span class="text-sky-200 font-semibold">Impuestos = (gasto total - gasto por día)</span>.
             </li>
             <li>En “Datos” podés exportar/importar JSON para backup o migración.</li>
+            <li>El export de Excel incluye todas las secciones (incluye POS y Partners).</li>
           </ul>
         </div>
       </div>
@@ -1274,6 +1531,26 @@
               <div class="text-xs text-slate-400 mt-1">
                 Impuestos = (total - diario) ⇒ <span class="text-sky-200 font-bold" x-text="fmtMoney(calcTaxes(forms.campaign))"></span>
               </div>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Alcance</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.campaign.reach" />
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Visualizaciones</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.campaign.views" />
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Costo por conversación (ARS)</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.campaign.costPerConversation" />
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Notas</label>
+              <textarea class="input rounded-xl px-3 py-2 w-full min-h-[90px]" x-model="forms.campaign.notes" placeholder="Notas y observaciones"></textarea>
             </div>
           </div>
 
@@ -1565,6 +1842,48 @@
           </div>
         </div>
 
+        <!-- Partner Form -->
+        <div x-show="modal.view==='partnerForm'">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-300">Nombre</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.partner.name" placeholder="Nombre del partner" />
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Empresa</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.partner.company" placeholder="Agencia / Empresa" />
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Email</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.partner.email" placeholder="contacto@mail.com" />
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Teléfono</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.partner.phone" placeholder="+54 11..." />
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Comisión (%)</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.partner.commission" />
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Notas</label>
+              <textarea class="input rounded-xl px-3 py-2 w-full min-h-[90px]" x-model="forms.partner.notes" placeholder="Notas internas"></textarea>
+            </div>
+          </div>
+
+          <div class="mt-4 flex gap-2">
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="savePartner()">
+              <i class="fa-solid fa-floppy-disk text-sky-300 mr-2"></i>Guardar
+            </button>
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="closeModal()">Cancelar</button>
+          </div>
+        </div>
+
         <!-- Reseller HTML -->
         <div x-show="modal.view==='resellerHtml'">
           <div class="glass rounded-2xl p-4 border border-white/10">
@@ -1598,6 +1917,22 @@
                 <button class="btn rounded-xl px-3 py-2 text-sm" @click="exportJSON()">
                   <i class="fa-solid fa-file-export text-sky-300 mr-2"></i>Exportar
                 </button>
+              </div>
+            </div>
+
+            <div class="glass rounded-2xl p-4 border border-white/10">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div class="font-extrabold">Exportar Excel</div>
+                  <div class="text-sm text-slate-300">Descargá un Excel para editar o migrar.</div>
+                </div>
+                <button class="btn rounded-xl px-3 py-2 text-sm" @click="exportAllExcel()">
+                  <i class="fa-solid fa-file-excel text-sky-300 mr-2"></i>Exportar Excel
+                </button>
+              </div>
+              <div class="mt-3">
+                <label class="text-xs text-slate-300">Importar Excel</label>
+                <input class="input rounded-xl px-3 py-2 w-full" type="file" accept=".xlsx,.xls" @change="importExcelFile($event)" />
               </div>
             </div>
 
