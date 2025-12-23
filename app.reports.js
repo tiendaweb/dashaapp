@@ -134,9 +134,41 @@ window.AAPPReports = {
   },
 
   resellerPricingHTML() {
-    const sections = this.db.saas.map((saas) => {
-      const items = this.db.resellers.filter(r => r.saasId === saas.id);
-      if (!items.length) return '';
+    const saasList = [...this.db.saas];
+    const saasById = new Map(saasList.map(s => [s.id, s]));
+    const ensureSaas = (saasId) => {
+      const normalizedId = saasId || '__no_saas__';
+      if (!saasById.has(normalizedId)) {
+        const name = saasId ? `Empresa sin definir (${saasId})` : 'Sin empresa';
+        const entry = { id: normalizedId, name, url: '', logoUrl: '' };
+        saasById.set(normalizedId, entry);
+        saasList.push(entry);
+      }
+      return normalizedId;
+    };
+
+    this.db.plans.forEach(p => ensureSaas(p.saasId));
+    this.db.extras.forEach(e => ensureSaas(e.saasId));
+    this.db.resellers.forEach(r => ensureSaas(r.saasId));
+
+    const sections = saasList.map((saas) => {
+      const baseItems = [
+        ...this.db.plans
+          .filter(p => ensureSaas(p.saasId) === saas.id)
+          .map(p => ({ sourceType: 'plan', sourceId: p.id, saasId: saas.id })),
+        ...this.db.extras
+          .filter(e => ensureSaas(e.saasId) === saas.id || (!e.saasId && saas.id === '__no_saas__'))
+          .map(e => ({ sourceType: 'extra', sourceId: e.id, saasId: saas.id }))
+      ];
+      const resellerItems = this.db.resellers.filter(r => ensureSaas(r.saasId) === saas.id);
+      const items = baseItems.map((base) => {
+        const reseller = resellerItems.find(r => r.sourceType === base.sourceType && r.sourceId === base.sourceId);
+        return reseller ? { ...reseller, hasReseller: true } : { ...base, hasReseller: false };
+      });
+      resellerItems.forEach((reseller) => {
+        const exists = baseItems.some(base => base.sourceType === reseller.sourceType && base.sourceId === reseller.sourceId);
+        if (!exists) items.push({ ...reseller, hasReseller: true });
+      });
 
       const logo = saas.logoUrl
         ? `<img src="${this.escapeHTML(saas.logoUrl)}" alt="${this.escapeHTML(saas.name)} logo" class="logo" />`
@@ -161,6 +193,9 @@ window.AAPPReports = {
         const requirementsHtml = requirements.length
           ? `<ul>${requirements.map(req => `<li>${this.escapeHTML(req)}</li>`).join('')}</ul>`
           : `<p class="muted">Sin requisitos cargados.</p>`;
+        const saleLabel = r.hasReseller ? this.fmtMoney(r.salePrice) : 'Sin precio revendedor';
+        const costLabel = r.hasReseller ? this.fmtMoney(r.costPrice) : 'Sin costo revendedor';
+        const deliveryLabel = r.hasReseller ? (r.deliveryTime || 'A confirmar') : 'Sin datos';
 
         return `
           <article class="card" data-frequency-card data-frequency="${this.escapeHTML(base.frequency)}">
@@ -172,11 +207,11 @@ window.AAPPReports = {
             <div class="price-row">
               <div>
                 <div class="label">Precio sugerido</div>
-                <div class="price">${this.escapeHTML(this.fmtMoney(r.salePrice))}</div>
+                <div class="price">${this.escapeHTML(saleLabel)}</div>
               </div>
               <div>
                 <div class="label">Costo</div>
-                <div class="price muted">${this.escapeHTML(this.fmtMoney(r.costPrice))}</div>
+                <div class="price muted">${this.escapeHTML(costLabel)}</div>
               </div>
             </div>
             <div class="detail">
@@ -185,7 +220,7 @@ window.AAPPReports = {
             </div>
             <div class="detail">
               <div class="label">Tiempo de entrega</div>
-              <div class="value">${this.escapeHTML(r.deliveryTime || 'A confirmar')}</div>
+              <div class="value">${this.escapeHTML(deliveryLabel)}</div>
             </div>
             <div class="detail">
               <div class="label">Requisitos</div>
@@ -206,7 +241,7 @@ window.AAPPReports = {
           </header>
           ${filters}
           <div class="cards">
-            ${cards}
+            ${cards || '<p class="muted">Sin planes o extras cargados.</p>'}
           </div>
         </section>
       `;
