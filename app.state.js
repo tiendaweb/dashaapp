@@ -32,11 +32,34 @@ window.AAPPState = () => ({
 
   modal: { open: false, view: '', title: '' },
 
+  imports: {
+    plan: '',
+    extra: '',
+    reseller: ''
+  },
+
   forms: {
     saas: { id: '', name: '', url: '', logoUrl: '', registerUrl: '', loginUrl: '' },
-    plan: { id: '', saasId: '', frequency: 'Por mes', title: '', description: '', price: 0 },
+    plan: {
+      id: '',
+      saasId: '',
+      frequency: 'Por mes',
+      title: '',
+      description: '',
+      price: 0,
+      features: [],
+      variableFeatures: []
+    },
     campaign: { id: '', saasId: '', adName: '', date: '', dailySpend: 0, totalSpend: 0 },
-    extra: { id: '', name: '', price: 0, frequency: 'Única vez' },
+    extra: {
+      id: '',
+      saasId: '',
+      name: '',
+      price: 0,
+      frequency: 'Única vez',
+      features: [],
+      variableFeatures: []
+    },
     client: { id: '', name: '', saasId: '', planId: '', extraIds: [], email: '', password: '', date: '', notes: '', links: '' },
     reseller: {
       id: '',

@@ -505,6 +505,8 @@
                   <th class="p-3">Precio</th>
                   <th class="p-3">Empresa</th>
                   <th class="p-3">Descripción</th>
+                  <th class="p-3">Características</th>
+                  <th class="p-3">Variables</th>
                   <th class="p-3 w-40">Acciones</th>
                 </tr>
               </thead>
@@ -521,6 +523,29 @@
                     </td>
                     <td class="p-3 text-slate-300" x-text="p.description || '-'"></td>
                     <td class="p-3">
+                      <div class="space-y-1">
+                        <template x-for="(feature, idx) in (p.features || [])" :key="'plan-feature-'+p.id+'-'+idx">
+                          <div class="flex items-center gap-2 text-xs">
+                            <i class="fa-solid" :class="feature.enabled ? 'fa-check text-emerald-300' : 'fa-xmark text-red-300'"></i>
+                            <span x-text="feature.label"></span>
+                          </div>
+                        </template>
+                        <div class="text-xs text-slate-500" x-show="(p.features || []).length===0">-</div>
+                      </div>
+                    </td>
+                    <td class="p-3">
+                      <div class="space-y-1">
+                        <template x-for="(feature, idx) in (p.variableFeatures || [])" :key="'plan-var-'+p.id+'-'+idx">
+                          <div class="text-xs">
+                            <span class="font-semibold" x-text="feature.key"></span>
+                            <span class="text-slate-400">:</span>
+                            <span x-text="feature.value"></span>
+                          </div>
+                        </template>
+                        <div class="text-xs text-slate-500" x-show="(p.variableFeatures || []).length===0">-</div>
+                      </div>
+                    </td>
+                    <td class="p-3">
                       <div class="flex gap-2">
                         <button class="btn rounded-xl px-3 py-2 text-xs" @click="editPlan(p.id)">
                           <i class="fa-solid fa-pen-to-square text-sky-300 mr-1"></i>Editar
@@ -534,7 +559,7 @@
                 </template>
 
                 <tr x-show="filteredPlans().length===0">
-                  <td class="p-6 text-slate-400" colspan="6">
+                  <td class="p-6 text-slate-400" colspan="8">
                     No hay planes todavía. Creá planes mensuales/anuales por empresa.
                   </td>
                 </tr>
@@ -767,6 +792,9 @@
                   <th class="p-3">Nombre</th>
                   <th class="p-3">Frecuencia</th>
                   <th class="p-3">Precio</th>
+                  <th class="p-3">Empresa</th>
+                  <th class="p-3">Características</th>
+                  <th class="p-3">Variables</th>
                   <th class="p-3 w-40">Acciones</th>
                 </tr>
               </thead>
@@ -776,6 +804,32 @@
                     <td class="p-3 font-semibold" x-text="e.name"></td>
                     <td class="p-3"><span class="badge text-xs px-2 py-1 rounded-lg" x-text="e.frequency"></span></td>
                     <td class="p-3 font-bold" x-text="fmtMoney(e.price)"></td>
+                    <td class="p-3">
+                      <span class="text-sky-200 font-semibold" x-text="saasName(e.saasId)"></span>
+                    </td>
+                    <td class="p-3">
+                      <div class="space-y-1">
+                        <template x-for="(feature, idx) in (e.features || [])" :key="'extra-feature-'+e.id+'-'+idx">
+                          <div class="flex items-center gap-2 text-xs">
+                            <i class="fa-solid" :class="feature.enabled ? 'fa-check text-emerald-300' : 'fa-xmark text-red-300'"></i>
+                            <span x-text="feature.label"></span>
+                          </div>
+                        </template>
+                        <div class="text-xs text-slate-500" x-show="(e.features || []).length===0">-</div>
+                      </div>
+                    </td>
+                    <td class="p-3">
+                      <div class="space-y-1">
+                        <template x-for="(feature, idx) in (e.variableFeatures || [])" :key="'extra-var-'+e.id+'-'+idx">
+                          <div class="text-xs">
+                            <span class="font-semibold" x-text="feature.key"></span>
+                            <span class="text-slate-400">:</span>
+                            <span x-text="feature.value"></span>
+                          </div>
+                        </template>
+                        <div class="text-xs text-slate-500" x-show="(e.variableFeatures || []).length===0">-</div>
+                      </div>
+                    </td>
                     <td class="p-3">
                       <div class="flex gap-2">
                         <button class="btn rounded-xl px-3 py-2 text-xs" @click="editExtra(e.id)">
@@ -790,7 +844,7 @@
                 </template>
 
                 <tr x-show="filteredExtras().length===0">
-                  <td class="p-6 text-slate-400" colspan="4">
+                  <td class="p-6 text-slate-400" colspan="7">
                     Sin extras todavía. Ej: Dominio .com, Logo, Setup, Ads, etc.
                   </td>
                 </tr>
@@ -806,6 +860,9 @@
           <h2 class="text-lg font-extrabold">Revendedores</h2>
           <span class="badge text-xs px-2 py-1 rounded-lg">Planes + Extras • Costos • Precios sugeridos</span>
           <div class="ml-auto flex flex-wrap items-center gap-2">
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetPlanForm(); openModal('planForm')">
+              <i class="fa-solid fa-layer-group mr-2 text-sky-300"></i>Crear plan
+            </button>
             <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetResellerForm(); openModal('resellerForm')">
               <i class="fa-solid fa-plus mr-2 text-sky-300"></i>Agregar
             </button>
@@ -1114,6 +1171,65 @@
               <label class="text-xs text-slate-300">Descripción</label>
               <textarea class="input rounded-xl px-3 py-2 w-full min-h-[90px]" x-model="forms.plan.description" placeholder="Qué incluye, límites, etc."></textarea>
             </div>
+
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Importar características desde otro plan</label>
+              <div class="flex flex-wrap gap-2">
+                <select class="input rounded-xl px-3 py-2 flex-1 min-w-[200px]" x-model="imports.plan">
+                  <option value="">Seleccionar plan</option>
+                  <template x-for="p in db.plans" :key="'plan-import-'+p.id">
+                    <option :value="p.id" x-text="p.title + ' • ' + saasName(p.saasId)"></option>
+                  </template>
+                </select>
+                <button class="btn rounded-xl px-3 py-2 text-sm" type="button" @click="importFeaturePreset('plan')">
+                  <i class="fa-solid fa-download text-sky-300 mr-2"></i>Importar
+                </button>
+              </div>
+            </div>
+
+            <div class="md:col-span-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs text-slate-300">Características</label>
+                <button class="btn rounded-xl px-3 py-1 text-xs" type="button" @click="addFeatureRow('plan')">
+                  <i class="fa-solid fa-plus text-sky-300 mr-1"></i>Agregar
+                </button>
+              </div>
+              <div class="space-y-2 mt-2">
+                <template x-for="(feature, idx) in (forms.plan.features || [])" :key="'plan-feature-'+idx">
+                  <div class="flex items-center gap-2">
+                    <input class="input rounded-xl px-3 py-2 flex-1" x-model="feature.label" placeholder="Ej: Dominio incluido" />
+                    <button class="btn rounded-xl px-3 py-2 text-xs" type="button" @click="feature.enabled = !feature.enabled">
+                      <i class="fa-solid" :class="feature.enabled ? 'fa-check text-emerald-300' : 'fa-xmark text-red-300'"></i>
+                    </button>
+                    <button class="btn-danger rounded-xl px-3 py-2 text-xs" type="button" @click="removeFeatureRow('plan', idx)">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </template>
+                <div class="text-xs text-slate-500" x-show="(forms.plan.features || []).length===0">Sin características cargadas.</div>
+              </div>
+            </div>
+
+            <div class="md:col-span-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs text-slate-300">Características variables (Key - Value)</label>
+                <button class="btn rounded-xl px-3 py-1 text-xs" type="button" @click="addVariableFeatureRow('plan')">
+                  <i class="fa-solid fa-plus text-sky-300 mr-1"></i>Agregar
+                </button>
+              </div>
+              <div class="space-y-2 mt-2">
+                <template x-for="(feature, idx) in (forms.plan.variableFeatures || [])" :key="'plan-var-'+idx">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <input class="input rounded-xl px-3 py-2 flex-1 min-w-[140px]" x-model="feature.key" placeholder="Ej: Productos" />
+                    <input class="input rounded-xl px-3 py-2 flex-1 min-w-[140px]" x-model="feature.value" placeholder="Ej: 10" />
+                    <button class="btn-danger rounded-xl px-3 py-2 text-xs" type="button" @click="removeVariableFeatureRow('plan', idx)">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </template>
+                <div class="text-xs text-slate-500" x-show="(forms.plan.variableFeatures || []).length===0">Sin variables cargadas.</div>
+              </div>
+            </div>
           </div>
 
           <div class="mt-4 flex gap-2">
@@ -1173,6 +1289,16 @@
         <div x-show="modal.view==='extraForm'">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
+              <label class="text-xs text-slate-300">Empresa</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.extra.saasId">
+                <option value="">Seleccionar</option>
+                <template x-for="s in db.saas" :key="'es-'+s.id">
+                  <option :value="s.id" x-text="s.name"></option>
+                </template>
+              </select>
+            </div>
+
+            <div>
               <label class="text-xs text-slate-300">Nombre</label>
               <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.extra.name" placeholder="Logo, Dominio, Setup, Ads, etc" />
             </div>
@@ -1189,6 +1315,65 @@
             <div class="md:col-span-2">
               <label class="text-xs text-slate-300">Precio (ARS)</label>
               <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.extra.price" />
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Importar características desde otro extra</label>
+              <div class="flex flex-wrap gap-2">
+                <select class="input rounded-xl px-3 py-2 flex-1 min-w-[200px]" x-model="imports.extra">
+                  <option value="">Seleccionar extra</option>
+                  <template x-for="e in db.extras" :key="'extra-import-'+e.id">
+                    <option :value="e.id" x-text="e.name + ' • ' + saasName(e.saasId)"></option>
+                  </template>
+                </select>
+                <button class="btn rounded-xl px-3 py-2 text-sm" type="button" @click="importFeaturePreset('extra')">
+                  <i class="fa-solid fa-download text-sky-300 mr-2"></i>Importar
+                </button>
+              </div>
+            </div>
+
+            <div class="md:col-span-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs text-slate-300">Características</label>
+                <button class="btn rounded-xl px-3 py-1 text-xs" type="button" @click="addFeatureRow('extra')">
+                  <i class="fa-solid fa-plus text-sky-300 mr-1"></i>Agregar
+                </button>
+              </div>
+              <div class="space-y-2 mt-2">
+                <template x-for="(feature, idx) in (forms.extra.features || [])" :key="'extra-feature-'+idx">
+                  <div class="flex items-center gap-2">
+                    <input class="input rounded-xl px-3 py-2 flex-1" x-model="feature.label" placeholder="Ej: Incluye configuración" />
+                    <button class="btn rounded-xl px-3 py-2 text-xs" type="button" @click="feature.enabled = !feature.enabled">
+                      <i class="fa-solid" :class="feature.enabled ? 'fa-check text-emerald-300' : 'fa-xmark text-red-300'"></i>
+                    </button>
+                    <button class="btn-danger rounded-xl px-3 py-2 text-xs" type="button" @click="removeFeatureRow('extra', idx)">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </template>
+                <div class="text-xs text-slate-500" x-show="(forms.extra.features || []).length===0">Sin características cargadas.</div>
+              </div>
+            </div>
+
+            <div class="md:col-span-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs text-slate-300">Características variables (Key - Value)</label>
+                <button class="btn rounded-xl px-3 py-1 text-xs" type="button" @click="addVariableFeatureRow('extra')">
+                  <i class="fa-solid fa-plus text-sky-300 mr-1"></i>Agregar
+                </button>
+              </div>
+              <div class="space-y-2 mt-2">
+                <template x-for="(feature, idx) in (forms.extra.variableFeatures || [])" :key="'extra-var-'+idx">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <input class="input rounded-xl px-3 py-2 flex-1 min-w-[140px]" x-model="feature.key" placeholder="Ej: Productos" />
+                    <input class="input rounded-xl px-3 py-2 flex-1 min-w-[140px]" x-model="feature.value" placeholder="Ej: 10" />
+                    <button class="btn-danger rounded-xl px-3 py-2 text-xs" type="button" @click="removeVariableFeatureRow('extra', idx)">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </template>
+                <div class="text-xs text-slate-500" x-show="(forms.extra.variableFeatures || []).length===0">Sin variables cargadas.</div>
+              </div>
             </div>
           </div>
 
@@ -1236,7 +1421,7 @@
             <div class="md:col-span-2">
               <label class="text-xs text-slate-300">Servicios extras</label>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-1">
-                <template x-for="e in db.extras" :key="'ce-'+e.id">
+                <template x-for="e in extrasBySaas(forms.client.saasId)" :key="'ce-'+e.id">
                   <label class="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm">
                     <input type="checkbox" class="accent-sky-400"
                            :value="e.id"
@@ -1248,8 +1433,8 @@
                     </span>
                   </label>
                 </template>
-                <div class="text-slate-400 text-sm" x-show="db.extras.length===0">
-                  No hay extras creados todavía.
+                <div class="text-slate-400 text-sm" x-show="extrasBySaas(forms.client.saasId).length===0">
+                  No hay extras para esta empresa.
                 </div>
               </div>
             </div>
@@ -1318,7 +1503,7 @@
                   </template>
                 </template>
                 <template x-if="forms.reseller.sourceType === 'extra'">
-                  <template x-for="e in db.extras" :key="'rs-e-'+e.id">
+                  <template x-for="e in extrasBySaas(forms.reseller.saasId)" :key="'rs-e-'+e.id">
                     <option :value="e.id" x-text="e.name + ' • ' + e.frequency + ' • ' + fmtMoney(e.price)"></option>
                   </template>
                 </template>
@@ -1326,8 +1511,23 @@
               <div class="text-xs text-slate-400 mt-1" x-show="forms.reseller.sourceType === 'plan' && plansBySaas(forms.reseller.saasId).length === 0">
                 Primero creá planes para esta empresa.
               </div>
-              <div class="text-xs text-slate-400 mt-1" x-show="forms.reseller.sourceType === 'extra' && db.extras.length === 0">
-                Primero creá servicios extra.
+              <div class="text-xs text-slate-400 mt-1" x-show="forms.reseller.sourceType === 'extra' && extrasBySaas(forms.reseller.saasId).length === 0">
+                Primero creá servicios extra para esta empresa.
+              </div>
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Importar valores desde otro plan revendedor</label>
+              <div class="flex flex-wrap gap-2">
+                <select class="input rounded-xl px-3 py-2 flex-1 min-w-[200px]" x-model="imports.reseller">
+                  <option value="">Seleccionar plan revendedor</option>
+                  <template x-for="r in resellersBySaas(forms.reseller.saasId)" :key="'rs-import-'+r.id">
+                    <option :value="r.id" x-text="resellerBaseName(r) + ' • ' + resellerTypeLabel(r)"></option>
+                  </template>
+                </select>
+                <button class="btn rounded-xl px-3 py-2 text-sm" type="button" @click="importResellerPreset()">
+                  <i class="fa-solid fa-download text-sky-300 mr-2"></i>Importar
+                </button>
               </div>
             </div>
 
