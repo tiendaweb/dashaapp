@@ -1,10 +1,11 @@
 window.AAPPState = () => ({
   isDark: true,
-  activeTab: 'saas',
+  activeTab: 'dashboard',
   q: '',
   importText: '',
 
   tabs: [
+    { key: 'dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },
     { key: 'saas', label: 'Empresas', icon: 'fa-building' },
     { key: 'plans', label: 'Planes', icon: 'fa-tags' },
     { key: 'campaigns', label: 'Campañas', icon: 'fa-bullhorn' },

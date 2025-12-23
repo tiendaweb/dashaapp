@@ -79,6 +79,29 @@ window.AAPPReports = {
     return this.incomePlansMonthlyEstimate() + this.incomeExtrasMonthlyEstimate();
   },
 
+  incomeEstimateBySaas(saasId) {
+    return this.db.clients
+      .filter(cl => cl.saasId === saasId)
+      .reduce((acc, cl) => {
+        const plan = this.db.plans.find(p => p.id === cl.planId);
+        acc += this.normalizeToMonthly(plan?.price || 0, plan?.frequency || 'Por mes');
+        (cl.extraIds || []).forEach(id => {
+          acc += this.normalizeToMonthly(this.extraPrice(id), this.extraFrequency(id));
+        });
+        return acc;
+      }, 0);
+  },
+
+  maxIncomeBySaas() {
+    if (!this.db.saas.length) return 1;
+    return Math.max(1, ...this.db.saas.map(s => this.incomeEstimateBySaas(s.id)));
+  },
+
+  maxClientsBySaas() {
+    if (!this.db.saas.length) return 1;
+    return Math.max(1, ...this.db.saas.map(s => this.countClientsBySaas(s.id)));
+  },
+
   domainExtrasCount() {
     // heurística: cuenta extras que contengan "dominio"
     const domainExtraIds = this.db.extras
