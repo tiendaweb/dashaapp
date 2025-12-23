@@ -17,7 +17,7 @@ window.AAPPFilters = {
 
   filteredCampaigns() {
     return this.db.campaigns.filter(c =>
-      this.matchQuery(c.adName) || this.matchQuery(c.date) || this.matchQuery(this.saasName(c.saasId))
+      this.matchQuery(c.adName) || this.matchQuery(c.date) || this.matchQuery(this.saasName(c.saasId)) || this.matchQuery(c.notes)
     ).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   },
 
@@ -56,6 +56,28 @@ window.AAPPFilters = {
     ));
   },
 
+  filteredPartners() {
+    return this.db.partners.filter((p) => (
+      this.matchQuery(p.name) ||
+      this.matchQuery(p.company) ||
+      this.matchQuery(p.email) ||
+      this.matchQuery(p.phone) ||
+      this.matchQuery(p.notes)
+    ));
+  },
+
+  filteredPosSales() {
+    return this.db.posSales.filter((sale) => (
+      this.matchQuery(sale.buyerName) ||
+      this.matchQuery(sale.buyerEmail) ||
+      this.matchQuery(this.saasName(sale.saasId)) ||
+      this.matchQuery(this.planTitle(sale.planId)) ||
+      this.matchQuery((sale.extraIds || []).map(id => this.extraName(id)).join(' ')) ||
+      this.matchQuery(sale.paymentMethod) ||
+      this.matchQuery(sale.notes)
+    )).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  },
+
   totalRecordsFiltered() {
     switch (this.activeTab) {
       case 'saas': return this.filteredSaaS().length;
@@ -64,7 +86,9 @@ window.AAPPFilters = {
       case 'clients': return this.filteredClients().length;
       case 'extras': return this.filteredExtras().length;
       case 'resellers': return this.filteredResellers().length;
-      default: return this.db.saas.length + this.db.plans.length + this.db.campaigns.length + this.db.clients.length + this.db.extras.length + this.db.resellers.length;
+      case 'partners': return this.filteredPartners().length;
+      case 'pos': return this.filteredPosSales().length;
+      default: return this.db.saas.length + this.db.plans.length + this.db.campaigns.length + this.db.clients.length + this.db.extras.length + this.db.resellers.length + this.db.partners.length + this.db.posSales.length;
     }
   }
 };

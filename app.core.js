@@ -21,6 +21,9 @@ window.AAPPCore = {
       // Seed mínimo con tus dos SaaS
       this.seedMinimal();
     }
+
+    if (!this.forms.pos.date) this.forms.pos.date = this.todayISO();
+    if (!this.forms.posCampaign.date) this.forms.posCampaign.date = this.todayISO();
   },
 
   normalizeDB(input) {
@@ -34,7 +37,13 @@ window.AAPPCore = {
         features: Array.isArray(p.features) ? p.features : [],
         variableFeatures: Array.isArray(p.variableFeatures) ? p.variableFeatures : []
       })),
-      campaigns: safe(input.campaigns),
+      campaigns: safe(input.campaigns).map((c) => ({
+        reach: 0,
+        views: 0,
+        costPerConversation: 0,
+        notes: '',
+        ...c
+      })),
       extras: safe(input.extras).map((e) => ({
         saasId: '',
         features: [],
@@ -44,7 +53,9 @@ window.AAPPCore = {
         variableFeatures: Array.isArray(e.variableFeatures) ? e.variableFeatures : []
       })),
       resellers: safe(input.resellers),
+      partners: safe(input.partners),
       clients: safe(input.clients),
+      posSales: safe(input.posSales),
       expenses: safe(input.expenses),
       meta: input.meta || { version: 1, savedAt: null }
     };
@@ -80,7 +91,8 @@ window.AAPPCore = {
       extraForm: (this.forms.extra.id ? 'Editar servicio extra' : 'Nuevo servicio extra'),
       clientForm: (this.forms.client.id ? 'Editar cliente' : 'Nuevo cliente'),
       resellerForm: (this.forms.reseller.id ? 'Editar plan revendedor' : 'Nuevo plan revendedor'),
-      resellerHtml: 'Página de planes para revendedores',
+      partnerForm: (this.forms.partner.id ? 'Editar partner' : 'Nuevo partner'),
+      resellerHtml: 'Página de precios revendedor',
       dataTools: 'Datos • Exportar / Importar / Demo'
     };
     this.modal.title = titles[view] || 'Formulario';
