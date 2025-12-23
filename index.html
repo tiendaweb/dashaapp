@@ -118,7 +118,7 @@
     <div class="flex-1 flex flex-col min-h-screen">
       <!-- Topbar -->
       <header class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap items-center gap-3">
+        <div class="w-full max-w-none px-4 py-4 flex flex-wrap items-center gap-3">
           <div class="w-10 h-10 rounded-2xl flex items-center justify-center glass ring-blue-soft md:hidden">
             <i class="fa-solid fa-layer-group text-sky-300"></i>
           </div>
@@ -151,49 +151,7 @@
       </header>
 
       <!-- Main -->
-      <main class="flex-1 max-w-7xl mx-auto px-4 py-6 pb-24 md:pb-6">
-    <!-- Quick KPIs -->
-    <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div class="glass rounded-2xl p-4 ring-blue-soft">
-        <div class="flex items-center justify-between">
-          <div class="text-sm text-slate-300">Empresas</div>
-          <i class="fa-solid fa-building text-sky-300"></i>
-        </div>
-        <div class="mt-2 text-2xl font-extrabold" x-text="db.saas.length"></div>
-        <div class="mt-2 text-xs text-slate-400">SaaS registradas</div>
-      </div>
-
-      <div class="glass rounded-2xl p-4 ring-blue-soft">
-        <div class="flex items-center justify-between">
-          <div class="text-sm text-slate-300">Clientes</div>
-          <i class="fa-solid fa-users text-sky-300"></i>
-        </div>
-        <div class="mt-2 text-2xl font-extrabold" x-text="db.clients.length"></div>
-        <div class="mt-2 text-xs text-slate-400">Con planes + extras</div>
-      </div>
-
-      <div class="glass rounded-2xl p-4 ring-blue-soft">
-        <div class="flex items-center justify-between">
-          <div class="text-sm text-slate-300">Ingresos (estim.)</div>
-          <i class="fa-solid fa-arrow-trend-up text-emerald-300"></i>
-        </div>
-        <div class="mt-2 text-2xl font-extrabold">
-          <span x-text="fmtMoney(totalIncomeEstimate())"></span>
-        </div>
-        <div class="mt-2 text-xs text-slate-400">Planes + extras (por frecuencia)</div>
-      </div>
-
-      <div class="glass rounded-2xl p-4 ring-blue-soft">
-        <div class="flex items-center justify-between">
-          <div class="text-sm text-slate-300">Ads (total)</div>
-          <i class="fa-solid fa-bullhorn text-sky-300"></i>
-        </div>
-        <div class="mt-2 text-2xl font-extrabold">
-          <span x-text="fmtMoney(totalAdsSpendAllTime())"></span>
-        </div>
-        <div class="mt-2 text-xs text-slate-400">Gasto total con impuestos</div>
-      </div>
-    </section>
+      <main class="flex-1 w-full max-w-none px-4 py-6 pb-24 md:pb-6">
 
     <!-- Controls -->
     <section class="glass rounded-2xl p-3 ring-blue-soft">
@@ -213,6 +171,237 @@
 
     <!-- Content -->
     <section class="mt-4">
+      <!-- Dashboard -->
+      <div x-show="activeTab==='dashboard'" x-transition.opacity>
+        <div class="flex items-center gap-2 mb-3">
+          <h2 class="text-lg font-extrabold">Dashboard</h2>
+          <span class="badge text-xs px-2 py-1 rounded-lg">KPIs • Salud • Resumen</span>
+        </div>
+
+        <!-- Quick KPIs -->
+        <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div class="glass rounded-2xl p-4 ring-blue-soft">
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-slate-300">Empresas</div>
+              <i class="fa-solid fa-building text-sky-300"></i>
+            </div>
+            <div class="mt-2 text-2xl font-extrabold" x-text="db.saas.length"></div>
+            <div class="mt-2 text-xs text-slate-400">SaaS registradas</div>
+          </div>
+
+          <div class="glass rounded-2xl p-4 ring-blue-soft">
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-slate-300">Clientes</div>
+              <i class="fa-solid fa-users text-sky-300"></i>
+            </div>
+            <div class="mt-2 text-2xl font-extrabold" x-text="db.clients.length"></div>
+            <div class="mt-2 text-xs text-slate-400">Con planes + extras</div>
+          </div>
+
+          <div class="glass rounded-2xl p-4 ring-blue-soft">
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-slate-300">Ingresos (estim.)</div>
+              <i class="fa-solid fa-arrow-trend-up text-emerald-300"></i>
+            </div>
+            <div class="mt-2 text-2xl font-extrabold">
+              <span x-text="fmtMoney(totalIncomeEstimate())"></span>
+            </div>
+            <div class="mt-2 text-xs text-slate-400">Planes + extras (por frecuencia)</div>
+          </div>
+
+          <div class="glass rounded-2xl p-4 ring-blue-soft">
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-slate-300">Ads (total)</div>
+              <i class="fa-solid fa-bullhorn text-sky-300"></i>
+            </div>
+            <div class="mt-2 text-2xl font-extrabold">
+              <span x-text="fmtMoney(totalAdsSpendAllTime())"></span>
+            </div>
+            <div class="mt-2 text-xs text-slate-400">Gasto total con impuestos</div>
+          </div>
+        </section>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
+          <div class="glass rounded-2xl p-4 ring-blue-soft xl:col-span-2">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-extrabold">Ingresos vs Ads</h3>
+              <span class="badge text-xs px-2 py-1 rounded-lg">Mensual estimado</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-slate-200">
+              <div class="bg-white/5 rounded-xl p-3 border border-white/10">
+                <div class="text-xs text-slate-400">Ingresos estimados</div>
+                <div class="mt-1 font-extrabold text-lg" x-text="fmtMoney(totalIncomeEstimate())"></div>
+              </div>
+              <div class="bg-white/5 rounded-xl p-3 border border-white/10">
+                <div class="text-xs text-slate-400">Ads total</div>
+                <div class="mt-1 font-extrabold text-lg" x-text="fmtMoney(totalAdsSpendAllTime())"></div>
+              </div>
+              <div class="bg-white/5 rounded-xl p-3 border border-white/10">
+                <div class="text-xs text-slate-400">Egresos manuales</div>
+                <div class="mt-1 font-extrabold text-lg" x-text="fmtMoney(totalExpensesManual())"></div>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <div class="flex items-center justify-between text-xs text-slate-400 mb-2">
+                <span>Ads sobre ingresos</span>
+                <span x-text="Math.min(100, Math.round((totalAdsSpendAllTime() / Math.max(totalIncomeEstimate(), 1)) * 100)) + '%'"></span>
+              </div>
+              <div class="h-2 rounded-full bg-white/5 overflow-hidden">
+                <div class="h-full bg-sky-400" :style="'width:' + Math.min(100, Math.round((totalAdsSpendAllTime() / Math.max(totalIncomeEstimate(), 1)) * 100)) + '%'"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass rounded-2xl p-4 ring-blue-soft">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-extrabold">Balance estimado</h3>
+              <i class="fa-solid fa-scale-balanced text-emerald-300"></i>
+            </div>
+            <div class="text-3xl font-extrabold" x-text="fmtMoney(balanceEstimate())"></div>
+            <div class="mt-3 text-xs text-slate-400">Ingresos - egresos - ads</div>
+            <div class="mt-4 space-y-2 text-sm text-slate-200">
+              <div class="flex justify-between">
+                <span>Planes</span>
+                <span class="font-bold" x-text="fmtMoney(incomePlansMonthlyEstimate())"></span>
+              </div>
+              <div class="flex justify-between">
+                <span>Extras</span>
+                <span class="font-bold" x-text="fmtMoney(incomeExtrasMonthlyEstimate())"></span>
+              </div>
+              <div class="flex justify-between">
+                <span>Ads (total)</span>
+                <span class="font-bold" x-text="fmtMoney(totalAdsSpendAllTime())"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
+          <div class="glass rounded-2xl p-4 ring-blue-soft">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-extrabold">Ingresos por tipo</h3>
+              <span class="badge text-xs px-2 py-1 rounded-lg">Estimado mensual</span>
+            </div>
+            <div class="space-y-4">
+              <div>
+                <div class="flex items-center justify-between text-xs text-slate-300 mb-2">
+                  <span>Planes</span>
+                  <span x-text="fmtMoney(incomePlansMonthlyEstimate())"></span>
+                </div>
+                <div class="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div class="h-full bg-emerald-400" :style="'width:' + Math.min(100, Math.round((incomePlansMonthlyEstimate() / Math.max(totalIncomeEstimate(), 1)) * 100)) + '%'"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex items-center justify-between text-xs text-slate-300 mb-2">
+                  <span>Extras</span>
+                  <span x-text="fmtMoney(incomeExtrasMonthlyEstimate())"></span>
+                </div>
+                <div class="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div class="h-full bg-sky-400" :style="'width:' + Math.min(100, Math.round((incomeExtrasMonthlyEstimate() / Math.max(totalIncomeEstimate(), 1)) * 100)) + '%'"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass rounded-2xl p-4 ring-blue-soft">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-extrabold">Clientes por empresa</h3>
+              <span class="badge text-xs px-2 py-1 rounded-lg">Cobertura</span>
+            </div>
+            <div class="space-y-3" x-show="db.saas.length">
+              <template x-for="s in db.saas" :key="'dash-clients-'+s.id">
+                <div>
+                  <div class="flex items-center justify-between text-xs text-slate-300 mb-2">
+                    <span x-text="s.name"></span>
+                    <span x-text="countClientsBySaas(s.id)"></span>
+                  </div>
+                  <div class="h-2 bg-white/5 rounded-full overflow-hidden">
+                    <div class="h-full bg-indigo-400" :style="'width:' + Math.min(100, Math.round((countClientsBySaas(s.id) / maxClientsBySaas()) * 100)) + '%'"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+            <div class="text-sm text-slate-400" x-show="db.saas.length===0">
+              Cargá empresas para ver su distribución de clientes.
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div class="glass rounded-2xl overflow-hidden">
+            <div class="p-4 border-b border-white/10 flex items-center justify-between">
+              <h3 class="font-extrabold">Empresas principales</h3>
+              <span class="badge text-xs px-2 py-1 rounded-lg">Ingresos + Ads</span>
+            </div>
+            <div class="overflow-auto scrollbar">
+              <table class="min-w-full table">
+                <thead>
+                  <tr class="text-left text-xs text-slate-300 border-b border-white/10">
+                    <th class="p-3">Empresa</th>
+                    <th class="p-3">Clientes</th>
+                    <th class="p-3">Planes</th>
+                    <th class="p-3">Ingresos (est.)</th>
+                    <th class="p-3">Ads (total)</th>
+                  </tr>
+                </thead>
+                <tbody class="text-sm">
+                  <template x-for="s in db.saas" :key="'dash-saas-'+s.id">
+                    <tr class="border-b border-white/5 hover:bg-white/5">
+                      <td class="p-3 font-semibold" x-text="s.name"></td>
+                      <td class="p-3" x-text="countClientsBySaas(s.id)"></td>
+                      <td class="p-3" x-text="countPlansBySaas(s.id)"></td>
+                      <td class="p-3 font-bold" x-text="fmtMoney(incomeEstimateBySaas(s.id))"></td>
+                      <td class="p-3" x-text="fmtMoney(totalAdsSpendBySaas(s.id))"></td>
+                    </tr>
+                  </template>
+                  <tr x-show="db.saas.length===0">
+                    <td class="p-6 text-slate-400" colspan="5">
+                      Sin empresas cargadas todavía.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="glass rounded-2xl overflow-hidden">
+            <div class="p-4 border-b border-white/10 flex items-center justify-between">
+              <h3 class="font-extrabold">Campañas recientes</h3>
+              <span class="badge text-xs px-2 py-1 rounded-lg">Últimas 5</span>
+            </div>
+            <div class="overflow-auto scrollbar">
+              <table class="min-w-full table">
+                <thead>
+                  <tr class="text-left text-xs text-slate-300 border-b border-white/10">
+                    <th class="p-3">Campaña</th>
+                    <th class="p-3">Empresa</th>
+                    <th class="p-3">Fecha</th>
+                    <th class="p-3">Total</th>
+                  </tr>
+                </thead>
+                <tbody class="text-sm">
+                  <template x-for="c in db.campaigns.slice().reverse().slice(0, 5)" :key="'dash-camp-'+c.id">
+                    <tr class="border-b border-white/5 hover:bg-white/5">
+                      <td class="p-3 font-semibold" x-text="c.adName"></td>
+                      <td class="p-3 text-sky-200 font-semibold" x-text="saasName(c.saasId)"></td>
+                      <td class="p-3 text-slate-300" x-text="c.date"></td>
+                      <td class="p-3 font-bold" x-text="fmtMoney(calcTotalWithTaxes(c))"></td>
+                    </tr>
+                  </template>
+                  <tr x-show="db.campaigns.length===0">
+                    <td class="p-6 text-slate-400" colspan="4">
+                      Sin campañas registradas todavía.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- SaaS -->
       <div x-show="activeTab==='saas'" x-transition.opacity>
         <div class="flex items-center gap-2 mb-3">
