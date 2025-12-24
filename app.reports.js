@@ -189,6 +189,18 @@ window.AAPPReports = {
 
       const cards = items.map((r) => {
         const base = this.resellerBase(r);
+        const plan = r.sourceType === 'plan' ? this.db.plans.find(p => p.id === r.sourceId) : null;
+        const extra = r.sourceType === 'extra' ? this.db.extras.find(e => e.id === r.sourceId) : null;
+        const featureList = (plan?.features || extra?.features || []).map((f) => `
+          <li class="${f.enabled ? 'on' : 'off'}">
+            <span class="icon">${f.enabled ? '✔︎' : '✕'}</span>
+            <span>${this.escapeHTML(f.label)}</span>
+          </li>
+        `).join('');
+        const variableList = (plan?.variableFeatures || extra?.variableFeatures || []).map((vf) => `
+          <li><strong>${this.escapeHTML(vf.key)}:</strong> ${this.escapeHTML(vf.value)}</li>
+        `).join('');
+
         const requirements = String(r.requirements || '').split('\n').map(line => line.trim()).filter(Boolean);
         const requirementsHtml = requirements.length
           ? `<ul>${requirements.map(req => `<li>${this.escapeHTML(req)}</li>`).join('')}</ul>`
@@ -225,6 +237,14 @@ window.AAPPReports = {
             <div class="detail">
               <div class="label">Requisitos</div>
               ${requirementsHtml}
+            </div>
+            <div class="detail">
+              <div class="label">Características</div>
+              ${featureList ? `<ul class="feature-list">${featureList}</ul>` : '<p class="muted">Sin características configuradas.</p>'}
+            </div>
+            <div class="detail">
+              <div class="label">Campos dinámicos</div>
+              ${variableList ? `<ul>${variableList}</ul>` : '<p class="muted">Sin campos dinámicos.</p>'}
             </div>
           </article>
         `;
@@ -291,6 +311,10 @@ window.AAPPReports = {
     .detail ul { margin: 0; padding-left: 18px; color: var(--text); }
     .detail li { margin-bottom: 4px; }
     .muted { color: var(--muted); font-size: 13px; }
+    .feature-list { list-style: none; padding-left: 0; margin: 0; display: grid; gap: 6px; }
+    .feature-list li { display: flex; gap: 8px; align-items: center; }
+    .feature-list .icon { font-size: 12px; color: var(--accent); }
+    .feature-list li.off .icon { color: #ef4444; }
   </style>
 </head>
 <body>

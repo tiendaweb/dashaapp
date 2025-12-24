@@ -21,6 +21,16 @@ window.AAPPFilters = {
     ).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   },
 
+  filteredDomains() {
+    const list = this.db.domains.filter((d) => {
+      const matchesQ = this.matchQuery(d.name) || this.matchQuery(d.provider) || this.matchQuery(d.status) || this.matchQuery(d.notes) || this.matchQuery(this.saasName(d.saasId)) || this.matchQuery(this.clientName(d.clientId));
+      if (!matchesQ) return false;
+      if (this.domainFilterSaasId && d.saasId !== this.domainFilterSaasId) return false;
+      return true;
+    });
+    return list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  },
+
   filteredExtras() {
     return this.db.extras.filter(e =>
       this.matchQuery(e.name) ||
@@ -81,6 +91,7 @@ window.AAPPFilters = {
   totalRecordsFiltered() {
     switch (this.activeTab) {
       case 'saas': return this.filteredSaaS().length;
+      case 'domains': return this.filteredDomains().length;
       case 'plans': return this.filteredPlans().length;
       case 'campaigns': return this.filteredCampaigns().length;
       case 'clients': return this.filteredClients().length;
@@ -88,7 +99,7 @@ window.AAPPFilters = {
       case 'resellers': return this.filteredResellers().length;
       case 'partners': return this.filteredPartners().length;
       case 'pos': return this.filteredPosSales().length;
-      default: return this.db.saas.length + this.db.plans.length + this.db.campaigns.length + this.db.clients.length + this.db.extras.length + this.db.resellers.length + this.db.partners.length + this.db.posSales.length;
+      default: return this.db.saas.length + this.db.domains.length + this.db.plans.length + this.db.campaigns.length + this.db.clients.length + this.db.extras.length + this.db.resellers.length + this.db.partners.length + this.db.posSales.length;
     }
   }
 };

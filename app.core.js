@@ -30,6 +30,15 @@ window.AAPPCore = {
     const safe = (arr) => Array.isArray(arr) ? arr : [];
     return {
       saas: safe(input.saas).map((s) => ({ logoUrl: '', ...s })),
+      domains: safe(input.domains).map((d) => ({
+        id: d.id || this.uid(),
+        name: d.name || '',
+        saasId: d.saasId || '',
+        clientId: d.clientId || '',
+        provider: d.provider || '',
+        status: d.status || 'Activo',
+        notes: d.notes || ''
+      })),
       plans: safe(input.plans).map((p) => ({
         features: [],
         variableFeatures: [],
@@ -90,6 +99,7 @@ window.AAPPCore = {
       campaignForm: (this.forms.campaign.id ? 'Editar campaña' : 'Nueva campaña'),
       extraForm: (this.forms.extra.id ? 'Editar servicio extra' : 'Nuevo servicio extra'),
       clientForm: (this.forms.client.id ? 'Editar cliente' : 'Nuevo cliente'),
+      domainForm: (this.forms.domain.id ? 'Editar dominio' : 'Nuevo dominio'),
       resellerForm: (this.forms.reseller.id ? 'Editar plan revendedor' : 'Nuevo plan revendedor'),
       partnerForm: (this.forms.partner.id ? 'Editar partner' : 'Nuevo partner'),
       resellerHtml: 'Página de precios revendedor',

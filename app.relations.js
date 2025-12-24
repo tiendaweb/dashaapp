@@ -5,6 +5,9 @@ window.AAPPRelations = {
   saasLogo(saasId) {
     return this.db.saas.find(x => x.id === saasId)?.logoUrl || '';
   },
+  clientName(clientId) {
+    return this.db.clients.find(x => x.id === clientId)?.name || '-';
+  },
   plansBySaas(saasId) {
     if (!saasId) return [];
     return this.db.plans.filter(p => p.saasId === saasId);
