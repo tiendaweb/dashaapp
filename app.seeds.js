@@ -5,6 +5,7 @@ window.AAPPSeeds = {
         { id: this.uid(), name: 'AAPP.SPACE', url: 'https://aapp.space', logoUrl: '', registerUrl: '', loginUrl: '' },
         { id: this.uid(), name: 'MiniTienda', url: 'https://minitienda.uno', logoUrl: '', registerUrl: '', loginUrl: '' }
       ],
+      domains: [],
       plans: [],
       campaigns: [],
       extras: [],
@@ -29,6 +30,8 @@ window.AAPPSeeds = {
     const e3 = this.uid();
     const c1 = this.uid();
     const c2 = this.uid();
+    const d1 = this.uid();
+    const d2 = this.uid();
     const r1 = this.uid();
     const r2 = this.uid();
     const r3 = this.uid();
@@ -133,6 +136,10 @@ window.AAPPSeeds = {
       clients: [
         { id: c1, name: 'Cliente Ejemplo 1', saasId: s2, planId: p3, extraIds: [e1], email: 'cliente1@mail.com', password: '1234', date: this.todayISO(), notes: 'Paga anual, pedir catálogo', links: 'Panel: /login' },
         { id: c2, name: 'Cliente Ejemplo 2', saasId: s1, planId: p1, extraIds: [e2, e3], email: 'cliente2@mail.com', password: 'abcd', date: this.todayISO(), notes: 'Quiere activar hoy', links: 'Drive: carpeta propuesta' }
+      ],
+      domains: [
+        { id: d1, name: 'aapp.space', saasId: s1, clientId: '', provider: 'Cloudflare', status: 'Activo', notes: 'Renovar en 60 días' },
+        { id: d2, name: 'tiendawpp.com.ar', saasId: s2, clientId: c1, provider: 'Nic.ar', status: 'Activo', notes: 'Facturación al cliente' }
       ],
       posSales: [
         { id: sale1, buyerName: 'Local Demo', buyerEmail: 'venta@demo.com', saasId: s1, planId: p1, extraIds: [e2], date: this.todayISO(), paymentMethod: 'Transferencia', amount: 125000, notes: 'Venta rápida POS.' }

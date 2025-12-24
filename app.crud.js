@@ -27,6 +27,44 @@ window.AAPPCrud = {
   delSaas(id) {
     if (!confirm('¿Borrar empresa? Esto NO borra planes/clientes automáticamente.')) return;
     this.db.saas = this.db.saas.filter(x => x.id !== id);
+    // limpiar referencias
+    this.db.domains = this.db.domains.map(d => d.saasId === id ? { ...d, saasId: '' } : d);
+    this.persist();
+  },
+
+  // CRUD: Domains
+  resetDomainForm() {
+    this.forms.domain = { id: '', name: '', saasId: '', clientId: '', provider: '', status: 'Activo', notes: '' };
+  },
+  editDomain(id) {
+    const d = this.db.domains.find(x => x.id === id);
+    if (!d) return;
+    this.forms.domain = JSON.parse(JSON.stringify(d));
+    this.openModal('domainForm');
+  },
+  saveDomain() {
+    const f = this.forms.domain;
+    if (!String(f.name || '').trim()) return alert('Falta el dominio.');
+    if (!f.saasId) return alert('Elegí una empresa.');
+    const payload = {
+      ...f,
+      saasId: f.saasId || '',
+      clientId: f.clientId || ''
+    };
+
+    if (f.id) {
+      const idx = this.db.domains.findIndex(x => x.id === f.id);
+      if (idx >= 0) this.db.domains[idx] = { ...this.db.domains[idx], ...payload };
+    } else {
+      this.db.domains.push({ ...payload, id: this.uid() });
+    }
+    this.persist();
+    this.closeModal();
+    this.resetDomainForm();
+  },
+  delDomain(id) {
+    if (!confirm('¿Borrar dominio?')) return;
+    this.db.domains = this.db.domains.filter(x => x.id !== id);
     this.persist();
   },
 
@@ -252,6 +290,7 @@ window.AAPPCrud = {
   },
   delClient(id) {
     if (!confirm('¿Borrar cliente?')) return;
+    this.db.domains = this.db.domains.map(d => d.clientId === id ? { ...d, clientId: '' } : d);
     this.db.clients = this.db.clients.filter(x => x.id !== id);
     this.persist();
   },
@@ -562,8 +601,11 @@ window.AAPPCrud = {
       'logoUrl',
       'registerUrl',
       'loginUrl',
+      'provider',
+      'status',
       'phone',
       'saasId',
+      'clientId',
       'planId',
       'sourceType',
       'sourceId',
@@ -610,6 +652,7 @@ window.AAPPCrud = {
 
     const rows = [header];
     this.db.saas.forEach((item) => rows.push(buildRow('saas', item)));
+    this.db.domains.forEach((item) => rows.push(buildRow('domains', item)));
     this.db.plans.forEach((item) => rows.push(buildRow('plans', item)));
     this.db.campaigns.forEach((item) => rows.push(buildRow('campaigns', item)));
     this.db.extras.forEach((item) => rows.push(buildRow('extras', item)));
@@ -689,6 +732,7 @@ window.AAPPCrud = {
 
     const result = {
       saas: [],
+      domains: [],
       plans: [],
       campaigns: [],
       extras: [],
@@ -729,6 +773,16 @@ window.AAPPCrud = {
           logoUrl: record.logoUrl || '',
           registerUrl: record.registerUrl || '',
           loginUrl: record.loginUrl || ''
+        });
+      } else if (area === 'domains') {
+        result.domains.push({
+          id,
+          name: record.name || '',
+          saasId: record.saasId || '',
+          clientId: record.clientId || '',
+          provider: record.provider || '',
+          status: record.status || '',
+          notes: record.notes || ''
         });
       } else if (area === 'plans') {
         result.plans.push({

@@ -7,6 +7,7 @@ window.AAPPState = () => ({
   tabs: [
     { key: 'dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },
     { key: 'saas', label: 'Empresas', icon: 'fa-building' },
+    { key: 'domains', label: 'Dominios', icon: 'fa-globe' },
     { key: 'plans', label: 'Planes', icon: 'fa-tags' },
     { key: 'campaigns', label: 'Campañas', icon: 'fa-bullhorn' },
     { key: 'clients', label: 'Clientes', icon: 'fa-users' },
@@ -20,6 +21,7 @@ window.AAPPState = () => ({
 
   db: {
     saas: [],
+    domains: [],
     plans: [],
     campaigns: [],
     extras: [],
@@ -35,6 +37,9 @@ window.AAPPState = () => ({
   resellerHtml: '',
 
   modal: { open: false, view: '', title: '' },
+
+  // UI filters
+  domainFilterSaasId: '',
 
   imports: {
     plan: '',
@@ -53,6 +58,15 @@ window.AAPPState = () => ({
       price: 0,
       features: [],
       variableFeatures: []
+    },
+    domain: {
+      id: '',
+      name: '',
+      saasId: '',
+      clientId: '',
+      provider: '',
+      status: 'Activo',
+      notes: ''
     },
     campaign: { id: '', saasId: '', adName: '', date: '', dailySpend: 0, totalSpend: 0, reach: 0, views: 0, costPerConversation: 0, notes: '' },
     extra: {

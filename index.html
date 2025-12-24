@@ -485,6 +485,95 @@
       </div>
 
       <!-- Plans -->
+      <div x-show="activeTab==='domains'" x-transition.opacity>
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-extrabold">Dominios</h2>
+            <span class="badge text-xs px-2 py-1 rounded-lg">Por empresa • Opcional cliente</span>
+          </div>
+          <div class="ml-auto flex flex-wrap items-center gap-2">
+            <select class="input rounded-xl px-3 py-2 text-sm" x-model="domainFilterSaasId">
+              <option value="">Todas las empresas</option>
+              <template x-for="s in db.saas" :key="'df-'+s.id">
+                <option :value="s.id" x-text="s.name"></option>
+              </template>
+            </select>
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetDomainForm(); openModal('domainForm')">
+              <i class="fa-solid fa-plus mr-2 text-sky-300"></i>Agregar
+            </button>
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl overflow-hidden">
+          <div class="overflow-auto scrollbar">
+            <table class="min-w-full table">
+              <thead>
+                <tr class="text-left text-xs text-slate-300 border-b border-white/10">
+                  <th class="p-3">Dominio</th>
+                  <th class="p-3">Empresa</th>
+                  <th class="p-3">Cliente (opcional)</th>
+                  <th class="p-3">Proveedor</th>
+                  <th class="p-3">Estado</th>
+                  <th class="p-3">Notas</th>
+                  <th class="p-3 w-40">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="text-sm">
+                <template x-for="d in filteredDomains()" :key="'dom-'+d.id">
+                  <tr class="border-b border-white/5 hover:bg-white/5">
+                    <td class="p-3 font-semibold">
+                      <span x-text="d.name"></span>
+                    </td>
+                    <td class="p-3">
+                      <div class="flex items-center gap-2">
+                        <template x-if="saasLogo(d.saasId)">
+                          <img class="w-8 h-8 rounded-lg object-contain border border-white/10 bg-white/5" :src="saasLogo(d.saasId)" :alt="saasName(d.saasId)" />
+                        </template>
+                        <template x-if="!saasLogo(d.saasId)">
+                          <div class="w-8 h-8 rounded-lg border border-white/10 bg-white/5 grid place-items-center text-xs text-slate-300">
+                            <span x-text="(saasName(d.saasId) || '?').slice(0,1)"></span>
+                          </div>
+                        </template>
+                        <div>
+                          <div class="text-sky-200 font-semibold" x-text="saasName(d.saasId)"></div>
+                          <div class="text-xs text-slate-400" x-text="d.saasId ? 'ID: '+d.saasId : 'Sin empresa'"></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="p-3">
+                      <div class="text-slate-200 font-semibold" x-text="clientName(d.clientId)"></div>
+                      <div class="text-xs text-slate-500" x-text="d.clientId ? 'Cliente vinculado' : 'Opcional'"></div>
+                    </td>
+                    <td class="p-3 text-slate-300" x-text="d.provider || '-'"></td>
+                    <td class="p-3">
+                      <span class="badge text-xs px-2 py-1 rounded-lg" x-text="d.status || 'Activo'"></span>
+                    </td>
+                    <td class="p-3 text-slate-300" x-text="d.notes || '-'"></td>
+                    <td class="p-3">
+                      <div class="flex gap-2">
+                        <button class="btn rounded-xl px-3 py-2 text-xs" @click="editDomain(d.id)">
+                          <i class="fa-solid fa-pen-to-square text-sky-300 mr-1"></i>Editar
+                        </button>
+                        <button class="btn-danger rounded-xl px-3 py-2 text-xs" @click="delDomain(d.id)">
+                          <i class="fa-solid fa-trash text-red-300 mr-1"></i>Borrar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+
+                <tr x-show="filteredDomains().length===0">
+                  <td class="p-6 text-slate-400" colspan="7">
+                    No hay dominios cargados. Creá dominios y vinculalos a una empresa (y opcionalmente a un cliente).
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plans -->
       <div x-show="activeTab==='plans'" x-transition.opacity>
         <div class="flex items-center gap-2 mb-3">
           <h2 class="text-lg font-extrabold">Planes</h2>
@@ -1491,6 +1580,58 @@
 
           <div class="mt-4 flex gap-2">
             <button class="btn rounded-xl px-3 py-2 text-sm" @click="savePlan()">
+              <i class="fa-solid fa-floppy-disk text-sky-300 mr-2"></i>Guardar
+            </button>
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="closeModal()">Cancelar</button>
+          </div>
+        </div>
+
+        <!-- Domain Form -->
+        <div x-show="modal.view==='domainForm'">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-300">Dominio</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.domain.name" placeholder="ej: midominio.com.ar" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Proveedor</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.domain.provider" placeholder="Cloudflare, Nic.ar, etc" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Empresa</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.domain.saasId">
+                <option value="">Seleccionar (obligatorio)</option>
+                <template x-for="s in db.saas" :key="'dom-s-'+s.id">
+                  <option :value="s.id" x-text="s.name"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Cliente (opcional)</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.domain.clientId">
+                <option value="">Sin cliente</option>
+                <template x-for="cl in (forms.domain.saasId ? db.clients.filter(c => c.saasId === forms.domain.saasId) : db.clients)" :key="'dom-c-'+cl.id">
+                  <option :value="cl.id" x-text="cl.name + ' • ' + saasName(cl.saasId)"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Estado</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.domain.status">
+                <option>Activo</option>
+                <option>Pendiente</option>
+                <option>Vencido</option>
+                <option>En transferencia</option>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Notas</label>
+              <textarea class="input rounded-xl px-3 py-2 w-full min-h-[90px]" x-model="forms.domain.notes" placeholder="Recordatorios, datos de facturación, etc"></textarea>
+            </div>
+          </div>
+
+          <div class="mt-4 flex gap-2">
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="saveDomain()">
               <i class="fa-solid fa-floppy-disk text-sky-300 mr-2"></i>Guardar
             </button>
             <button class="btn rounded-xl px-3 py-2 text-sm" @click="closeModal()">Cancelar</button>
