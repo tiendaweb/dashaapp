@@ -1,3 +1,115 @@
+<?php
+require_once __DIR__ . '/config.php';
+
+try {
+    $pdo = get_pdo();
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo 'Error conectando a la base de datos: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+    exit;
+}
+
+function ensure_state_table(PDO $pdo): void
+{
+    $pdo->exec(<<<SQL
+CREATE TABLE IF NOT EXISTS app_state (
+  id TINYINT UNSIGNED PRIMARY KEY,
+  data JSON NOT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+SQL);
+}
+
+function default_state(): array
+{
+    return [
+        'saas' => [],
+        'domains' => [],
+        'plans' => [],
+        'campaigns' => [],
+        'extras' => [],
+        'resellers' => [],
+        'partners' => [],
+        'clients' => [],
+        'posSales' => [],
+        'expenses' => [],
+        'meta' => ['version' => 1, 'savedAt' => null],
+    ];
+}
+
+function load_state(PDO $pdo): array
+{
+    ensure_state_table($pdo);
+    $stmt = $pdo->prepare('SELECT data FROM app_state WHERE id = 1 LIMIT 1');
+    $stmt->execute();
+    $row = $stmt->fetch();
+
+    if ($row && isset($row['data'])) {
+        $decoded = json_decode($row['data'], true);
+        return is_array($decoded) ? $decoded : default_state();
+    }
+
+    $fresh = default_state();
+    save_state($pdo, $fresh);
+    return $fresh;
+}
+
+function save_state(PDO $pdo, array $data): void
+{
+    ensure_state_table($pdo);
+    $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
+
+    $stmt = $pdo->prepare('INSERT INTO app_state (id, data) VALUES (1, :data)
+      ON DUPLICATE KEY UPDATE data = VALUES(data), updated_at = CURRENT_TIMESTAMP');
+    $stmt->execute([':data' => $payload]);
+}
+
+function reset_state(PDO $pdo): array
+{
+    $fresh = default_state();
+    save_state($pdo, $fresh);
+    return $fresh;
+}
+
+if (isset($_GET['action'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    $action = $_GET['action'];
+
+    try {
+        if ($action === 'load') {
+            echo json_encode(['success' => true, 'data' => load_state($pdo)]);
+            exit;
+        }
+
+        if ($action === 'save') {
+            $input = file_get_contents('php://input');
+            $payload = json_decode($input, true);
+            if (!is_array($payload)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'JSON inválido.']);
+                exit;
+            }
+            save_state($pdo, $payload);
+            echo json_encode(['success' => true]);
+            exit;
+        }
+
+        if ($action === 'reset') {
+            $fresh = reset_state($pdo);
+            echo json_encode(['success' => true, 'data' => $fresh]);
+            exit;
+        }
+
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Acción no soportada.']);
+        exit;
+    } catch (Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Error de servidor: ' . $e->getMessage()]);
+        exit;
+    }
+}
+?>
 <!doctype html>
 <html lang="es-AR" class="h-full" x-data="AAPPApp()" x-init="init()">
 <head>
@@ -128,7 +240,7 @@
               AAPP Manager <span class="text-sky-300">•</span> Dashboard
             </h1>
             <p class="text-xs md:text-sm text-slate-300">
-              Todo local (localStorage) • CRUD • Relaciones • Resúmenes
+              PHP + MySQL • CRUD • Relaciones • Resúmenes
             </p>
           </div>
 
@@ -1402,7 +1514,7 @@
         <div class="glass rounded-2xl p-5 ring-blue-soft">
           <h2 class="text-lg font-extrabold mb-2">Ayuda rápida</h2>
           <ul class="list-disc pl-6 text-sm text-slate-300 space-y-2">
-            <li>Todo se guarda en tu navegador (localStorage). Si borrás datos del navegador, se pierde.</li>
+            <li>Los datos se guardan en MySQL (ver <code>php/config.php</code>). Hacé backups con el exportador.</li>
             <li>Relaciones:
               <span class="text-sky-200 font-semibold">Planes</span> pertenecen a una <span class="text-sky-200 font-semibold">Empresa</span>;
               <span class="text-sky-200 font-semibold">Clientes</span> eligen un <span class="text-sky-200 font-semibold">Plan</span> y <span class="text-sky-200 font-semibold">Extras</span>.
