@@ -906,13 +906,14 @@ window.AAPPCrud = {
     }
   },
 
-  resetAll() {
-    if (!confirm('RESET TOTAL: se borra todo el localStorage de esta app. ¿Continuar?')) return;
-    const removed = this.safeStorageRemove(window.AAPPConstants.STORAGE_KEY);
-    if (!removed) {
-      alert('El almacenamiento local está bloqueado. No se pueden borrar los datos guardados.');
-      return;
+  async resetAll() {
+    if (!confirm('RESET TOTAL: se borra todo en la base de datos. ¿Continuar?')) return;
+    try {
+      await this.resetStateOnServer();
+      location.reload();
+    } catch (e) {
+      console.error('No se pudo reiniciar la base de datos.', e);
+      alert('No se pudo reiniciar la base de datos MySQL.');
     }
-    location.reload();
   }
 };

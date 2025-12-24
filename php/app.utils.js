@@ -1,5 +1,5 @@
 window.AAPPUtils = {
-  storageBlocked: false,
+  apiUnavailable: false,
 
   uid() {
     return 'id_' + Math.random().toString(16).slice(2) + '_' + Date.now().toString(16);
@@ -71,35 +71,42 @@ window.AAPPUtils = {
     }
   },
 
-  safeStorageGet(key) {
-    try {
-      return localStorage.getItem(key);
-    } catch (e) {
-      console.warn('No se pudo acceder a localStorage.', e);
-      this.storageBlocked = true;
-      return null;
-    }
+  async fetchStateFromServer() {
+    const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}?action=load`, {
+      headers: { 'Accept': 'application/json' },
+      credentials: 'same-origin'
+    });
+    if (!res.ok) throw new Error('No se pudo cargar el estado desde el servidor.');
+    const payload = await res.json();
+    if (!payload.success) throw new Error(payload.message || 'Respuesta inválida del servidor.');
+    return payload.data;
   },
 
-  safeStorageSet(key, value) {
-    try {
-      localStorage.setItem(key, value);
-      return true;
-    } catch (e) {
-      console.warn('No se pudo escribir en localStorage.', e);
-      this.storageBlocked = true;
-      return false;
-    }
+  async saveStateToServer(data) {
+    const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}?action=save`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('No se pudo guardar en la base de datos.');
+    const payload = await res.json();
+    if (!payload.success) throw new Error(payload.message || 'No se pudo guardar en la base de datos.');
+    return payload;
   },
 
-  safeStorageRemove(key) {
-    try {
-      localStorage.removeItem(key);
-      return true;
-    } catch (e) {
-      console.warn('No se pudo borrar en localStorage.', e);
-      this.storageBlocked = true;
-      return false;
-    }
+  async resetStateOnServer() {
+    const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}?action=reset`, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' },
+      credentials: 'same-origin'
+    });
+    if (!res.ok) throw new Error('No se pudo reiniciar la base de datos.');
+    const payload = await res.json();
+    if (!payload.success) throw new Error(payload.message || 'Respuesta inválida al reiniciar.');
+    return payload.data;
   }
 };

@@ -1,25 +1,20 @@
 window.AAPPCore = {
-  init() {
+  async init() {
     // Dark mode default
     this.applyDarkClass();
 
-    // Load DB
-    const raw = this.safeStorageGet(window.AAPPConstants.STORAGE_KEY);
-    if (this.storageBlocked) {
-      this.seedMinimal({ persist: false });
-      return;
-    }
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        this.db = this.normalizeDB(parsed);
-      } catch (e) {
-        console.warn('DB inválida, usando vacía', e);
-        this.persist();
+    // Load DB desde servidor
+    try {
+      const remote = await this.fetchStateFromServer();
+      if (remote) {
+        this.db = this.normalizeDB(remote);
+      } else {
+        this.seedMinimal();
       }
-    } else {
-      // Seed mínimo con tus dos SaaS
-      this.seedMinimal();
+    } catch (e) {
+      console.warn('No se pudo cargar la base de datos remota, usando seed mínimo.', e);
+      this.apiUnavailable = true;
+      this.seedMinimal({ persist: false });
     }
 
     if (!this.forms.pos.date) this.forms.pos.date = this.todayISO();
@@ -71,11 +66,16 @@ window.AAPPCore = {
   },
 
   persist() {
-    this.db.meta.savedAt = new Date().toISOString();
-    const saved = this.safeStorageSet(window.AAPPConstants.STORAGE_KEY, JSON.stringify(this.db));
-    if (!saved) {
-      alert('El almacenamiento local está bloqueado. Los datos no podrán persistir.');
+    if (this.apiUnavailable) {
+      console.warn('API no disponible, no se guarda el estado todavía.');
+      return;
     }
+    this.db.meta.savedAt = new Date().toISOString();
+    this.saveStateToServer(this.db).catch((err) => {
+      console.error('No se pudo persistir en la base de datos.', err);
+      this.apiUnavailable = true;
+      alert('No se pudo guardar en la base de datos MySQL. Verificá la conexión.');
+    });
   },
 
   toggleDark() {
