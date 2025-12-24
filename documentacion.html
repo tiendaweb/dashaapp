@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="es-AR" class="h-full" x-data="docApp()" x-init="document.documentElement.classList.add('dark'); setActiveFromHash()">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AAPP Manager — Documentación</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          boxShadow: {
+            soft: '0 10px 25px rgba(0,0,0,.25)',
+          }
+        }
+      }
+    }
+
+    function docApp() {
+      return {
+        isDark: true,
+        activeTab: 'dashboard',
+        tabs: [
+          { key: 'dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },
+          { key: 'saas', label: 'Empresas', icon: 'fa-building' },
+          { key: 'domains', label: 'Dominios', icon: 'fa-globe' },
+          { key: 'plans', label: 'Planes', icon: 'fa-tags' },
+          { key: 'campaigns', label: 'Campañas', icon: 'fa-bullhorn' },
+          { key: 'clients', label: 'Clientes', icon: 'fa-users' },
+          { key: 'extras', label: 'Extras', icon: 'fa-puzzle-piece' },
+          { key: 'resellers', label: 'Precios Revendedor', icon: 'fa-handshake' },
+          { key: 'partners', label: 'Partners', icon: 'fa-people-group' },
+          { key: 'pos', label: 'POS', icon: 'fa-cash-register' },
+          { key: 'balance', label: 'Balance', icon: 'fa-chart-line' },
+          { key: 'help', label: 'Ayuda', icon: 'fa-circle-question' }
+        ],
+        setActiveFromHash() {
+          const hash = window.location.hash.replace('#', '');
+          if (hash) this.activeTab = hash;
+        },
+        toggleTheme() {
+          this.isDark = !this.isDark;
+          document.documentElement.classList.toggle('dark', this.isDark);
+        }
+      };
+    }
+  </script>
+
+  <style>
+    :root{
+      --blue-acc: 56 189 248; /* sky-400 */
+      --blue-acc2: 59 130 246; /* blue-500 */
+    }
+    .glass {
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border: 1px solid rgba(255,255,255,.10);
+      backdrop-filter: blur(10px);
+    }
+    .ring-blue-soft { box-shadow: 0 0 0 1px rgba(56,189,248,.20), 0 10px 25px rgba(0,0,0,.25); }
+    .scrollbar::-webkit-scrollbar{ height:10px; width:10px; }
+    .scrollbar::-webkit-scrollbar-thumb{ background: rgba(56,189,248,.25); border-radius: 999px; }
+    .scrollbar::-webkit-scrollbar-track{ background: rgba(255,255,255,.04); }
+    .badge {
+      border: 1px solid rgba(56,189,248,.35);
+      background: rgba(56,189,248,.08);
+      color: rgb(186 230 253);
+    }
+    .btn {
+      border: 1px solid rgba(56,189,248,.30);
+      background: rgba(56,189,248,.10);
+    }
+    .btn:hover { background: rgba(56,189,248,.16); }
+  </style>
+</head>
+
+<body class="h-full bg-slate-950 text-slate-100">
+  <div class="min-h-screen md:flex">
+    <!-- Sidebar (desktop) -->
+    <aside class="hidden md:flex md:flex-col w-64 border-r border-white/10 bg-slate-950/80 backdrop-blur sticky top-0 h-screen">
+      <div class="px-4 py-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl flex items-center justify-center glass ring-blue-soft">
+          <i class="fa-solid fa-layer-group text-sky-300"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-extrabold tracking-tight">
+            AAPP Manager
+          </h1>
+          <p class="text-xs text-slate-300">Documentación</p>
+        </div>
+      </div>
+
+      <nav class="flex-1 px-4 space-y-2 overflow-y-auto scrollbar">
+        <template x-for="t in tabs" :key="'side-' + t.key">
+          <a
+            class="w-full px-3 py-2 rounded-xl text-sm font-semibold flex items-center gap-3 border border-white/10"
+            :class="activeTab === t.key ? 'bg-sky-500/15 border-sky-400/30 text-sky-200' : 'bg-white/5 hover:bg-white/8 text-slate-200'"
+            :href="'#' + t.key"
+            @click="activeTab = t.key">
+            <i class="fa-solid" :class="t.icon"></i>
+            <span x-text="t.label"></span>
+          </a>
+        </template>
+      </nav>
+
+      <div class="p-4 text-xs text-slate-400 space-y-1">
+        <div class="flex items-center justify-between">
+          <span>Modo</span>
+          <button class="btn rounded-lg px-2 py-1 text-xs" @click="toggleTheme()">
+            <span x-text="isDark ? 'Dark' : 'Light'"></span>
+          </button>
+        </div>
+        <p>La app original guarda tus datos en <strong>localStorage</strong> bajo la clave <code class="text-sky-200">aapp_manager_v1</code>.</p>
+      </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col min-h-screen">
+      <!-- Topbar -->
+      <header class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur">
+        <div class="w-full max-w-none px-4 py-4 flex flex-wrap items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center glass ring-blue-soft md:hidden">
+            <i class="fa-solid fa-layer-group text-sky-300"></i>
+          </div>
+          <div>
+            <h1 class="text-lg md:text-xl font-extrabold tracking-tight">
+              AAPP Manager <span class="text-sky-300">•</span> Documentación & Guía
+            </h1>
+            <p class="text-xs md:text-sm text-slate-300">
+              Referencia rápida de secciones, datos esperados y flujos de uso.
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main -->
+      <main class="flex-1 w-full max-w-5xl mx-auto px-4 py-6 pb-24 md:pb-10 space-y-6">
+        <section class="glass rounded-2xl p-4 ring-blue-soft">
+          <div class="flex flex-wrap items-center gap-3 mb-2">
+            <div class="w-10 h-10 rounded-2xl flex items-center justify-center glass ring-blue-soft">
+              <i class="fa-solid fa-circle-info text-sky-300"></i>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Contexto</p>
+              <h2 class="text-xl font-extrabold">Cómo funciona el sistema</h2>
+            </div>
+          </div>
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="glass rounded-xl p-4 border border-white/10">
+              <div class="flex items-center gap-2 text-sm font-semibold mb-2">
+                <i class="fa-solid fa-database text-sky-300"></i>
+                Persistencia local
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed">
+                Toda la base se guarda en tu navegador mediante <strong>localStorage</strong>. Podés exportar o importar el estado completo
+                (Excel o JSON) desde la opción <em>Datos</em> en el topbar. Si el almacenamiento está bloqueado, la app arranca con un seed mínimo en memoria.
+              </p>
+            </div>
+            <div class="glass rounded-xl p-4 border border-white/10">
+              <div class="flex items-center gap-2 text-sm font-semibold mb-2">
+                <i class="fa-solid fa-sitemap text-sky-300"></i>
+                Datos relacionados
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed">
+                Las entidades están conectadas: planes y extras pertenecen a una empresa, campañas se vinculan a un SaaS y los clientes referencian
+                su plan, extras contratados y dominios asignados. Los contadores del dashboard y los listados usan esas relaciones para resumir la actividad.
+              </p>
+            </div>
+            <div class="glass rounded-xl p-4 border border-white/10">
+              <div class="flex items-center gap-2 text-sm font-semibold mb-2">
+                <i class="fa-solid fa-chart-column text-sky-300"></i>
+                Operaciones rápidas
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed">
+                El buscador global filtra por nombre, URL o notas. Desde el topbar podés cambiar de tema, abrir herramientas de datos o exportar todo a Excel.
+                La sección POS registra ventas rápidas y la pestaña Balance resume ingresos vs. egresos.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="space-y-4">
+          <div class="flex items-center gap-2">
+            <div class="w-10 h-10 rounded-2xl flex items-center justify-center glass ring-blue-soft">
+              <i class="fa-solid fa-list-check text-sky-300"></i>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Sidebar</p>
+              <h2 class="text-xl font-extrabold">Pestañas y su propósito</h2>
+              <p class="text-sm text-slate-300">Usá el menú lateral para saltar a cada sección de la guía.</p>
+            </div>
+          </div>
+
+          <div class="grid gap-4">
+            <section id="dashboard" class="glass rounded-2xl p-4 border border-white/10">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fa-solid fa-gauge-high text-sky-300"></i>
+                <h3 class="text-lg font-extrabold">Dashboard</h3>
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed mb-2">
+                Punto de partida con KPIs rápidos: cantidad de SaaS cargadas, clientes activos, campañas y servicios extra contratados.
+                Incluye indicadores de salud (ventas POS, egresos) y resúmenes por empresa para validar crecimiento y gastos.
+              </p>
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1">
+                <li>Panel de KPIs instantáneos y tablas de salud (ventas vs. egresos, campañas recientes).</li>
+                <li>Resumen de planes, extras y dominios por empresa para entender cobertura.</li>
+                <li>Badges de estado que reaccionan al filtro de búsqueda global.</li>
+              </ul>
+            </section>
+
+            <section id="saas" class="glass rounded-2xl p-4 border border-white/10">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fa-solid fa-building text-sky-300"></i>
+                <h3 class="text-lg font-extrabold">Empresas</h3>
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed mb-2">
+                Listado central de las empresas SaaS que gestionás. Cada registro incluye logo, sitio principal y enlaces de registro y login.
+                Los contadores de planes y clientes permiten ver el impacto de cada SaaS de un vistazo.
+              </p>
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1">
+                <li>Acceso a crear, editar o borrar empresas sin afectar el resto de datos.</li>
+                <li>Contadores automáticos de clientes y planes relacionados.</li>
+                <li>Enlaces directos para visitar el sitio, el registro o el login.</li>
+              </ul>
+            </section>
+
+            <section id="domains" class="glass rounded-2xl p-4 border border-white/10">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fa-solid fa-globe text-sky-300"></i>
+                <h3 class="text-lg font-extrabold">Dominios</h3>
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed mb-2">
+                Seguimiento de dominios operativos por empresa, con opción de asociarlos a un cliente.
+                También se documenta proveedor, estado y notas para saber dónde y cómo gestionarlos.
+              </p>
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1">
+                <li>Filtro rápido por empresa para revisar dominios de un SaaS específico.</li>
+                <li>Campos para proveedor, estado (activo/suspendido) y notas de seguimiento.</li>
+                <li>Botones de edición y borrado para mantener el inventario actualizado.</li>
+              </ul>
+            </section>
+
+            <section id="plans" class="glass rounded-2xl p-4 border border-white/10">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fa-solid fa-tags text-sky-300"></i>
+                <h3 class="text-lg font-extrabold">Planes</h3>
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed mb-2">
+                Definí los planes ofrecidos por cada SaaS, con precios, frecuencia, descripción y features incluidas.
+                Estos planes se usan luego en clientes, revendedores y el flujo POS.
+              </p>
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1">
+                <li>Frecuencia configurable (mensual, anual, etc.) y precios numéricos.</li>
+                <li>Listado de features fijas y variables para detallar alcance.</li>
+                <li>Integración directa con clientes y revendedores.</li>
+              </ul>
+            </section>
+
+            <section id="campaigns" class="glass rounded-2xl p-4 border border-white/10">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fa-solid fa-bullhorn text-sky-300"></i>
+                <h3 class="text-lg font-extrabold">Campañas</h3>
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed mb-2">
+                Registro de campañas de adquisición o activación por empresa, con gastos diarios y totales,
+                alcance, vistas y costo por conversación para evaluar la eficiencia publicitaria.
+              </p>
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1">
+                <li>Captura de gasto diario y total más métricas de performance.</li>
+                <li>Notas libres para hipótesis, plataformas usadas o próximos pasos.</li>
+                <li>Relación directa con el SaaS para consolidar costos en el balance.</li>
+              </ul>
+            </section>
+
+            <section id="clients" class="glass rounded-2xl p-4 border border-white/10">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fa-solid fa-users text-sky-300"></i>
+                <h3 class="text-lg font-extrabold">Clientes</h3>
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed mb-2">
+                Base de clientes con credenciales y notas. Cada cliente referencia su SaaS,
+                el plan contratado, los extras activos y los dominios asignados.
+              </p>
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1">
+                <li>Campos para email, contraseña (opcional) y enlaces útiles.</li>
+                <li>Selección múltiple de extras y asociación con dominios existentes.</li>
+                <li>Fecha de alta para trazar cronologías y renovaciones.</li>
+              </ul>
+            </section>
+
+            <section id="extras" class="glass rounded-2xl p-4 border border-white/10">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fa-solid fa-puzzle-piece text-sky-300"></i>
+                <h3 class="text-lg font-extrabold">Extras</h3>
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed mb-2">
+                Servicios adicionales ofrecidos por cada empresa (ej. soporte premium, integraciones).
+                Admiten features fijas y variables, frecuencia de cobro y precio.
+              </p>
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1">
+                <li>Frecuencia única o recurrente para reflejar cobros puntuales.</li>
+                <li>Compatibles con el flujo POS y con selección múltiple en clientes.</li>
+                <li>Visibilidad por empresa para evitar mezclar catálogos.</li>
+              </ul>
+            </section>
+
+            <section id="resellers" class="glass rounded-2xl p-4 border border-white/10">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fa-solid fa-handshake text-sky-300"></i>
+                <h3 class="text-lg font-extrabold">Precios Revendedor</h3>
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed mb-2">
+                Configurá precios de reventa tomando como fuente un plan o servicio extra.
+                Se detallan costos, precio de venta, tiempos de entrega y requisitos.
+              </p>
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1">
+                <li>Selector de origen (plan o extra) para calcular margen.</li>
+                <li>Campos de requisitos para compartir con el partner.</li>
+                <li>Generación de página HTML de precios para compartir por WhatsApp o email.</li>
+              </ul>
+            </section>
+
+            <section id="partners" class="glass rounded-2xl p-4 border border-white/10">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fa-solid fa-people-group text-sky-300"></i>
+                <h3 class="text-lg font-extrabold">Partners</h3>
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed mb-2">
+                Agenda de partners y afiliados con datos de contacto, compañía y comisión pactada.
+                Permite centralizar quién vende o implementa cada SaaS.
+              </p>
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1">
+                <li>Campos para email, teléfono y notas de acuerdos.</li>
+                <li>Referencia de comisión para cálculos de payout.</li>
+                <li>Útil para coordinar con revendedores y campañas conjuntas.</li>
+              </ul>
+            </section>
+
+            <section id="pos" class="glass rounded-2xl p-4 border border-white/10">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fa-solid fa-cash-register text-sky-300"></i>
+                <h3 class="text-lg font-extrabold">POS</h3>
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed mb-2">
+                Punto de venta rápido para registrar nuevas ventas: seleccioná empresa, plan, extras,
+                método de pago y notas. Cada registro alimenta los contadores y el balance.
+              </p>
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1">
+                <li>Captura de comprador (nombre y email) y fecha de compra.</li>
+                <li>Compatibilidad con extras múltiples y campañas vinculadas.</li>
+                <li>Botón dedicado para generar ventas sin pasar por el CRUD de clientes.</li>
+              </ul>
+            </section>
+
+            <section id="balance" class="glass rounded-2xl p-4 border border-white/10">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fa-solid fa-chart-line text-sky-300"></i>
+                <h3 class="text-lg font-extrabold">Balance</h3>
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed mb-2">
+                Resumen financiero simple que cruza ventas POS contra egresos manuales.
+                Permite ver saldo, registrar egresos y revisar el historial.
+              </p>
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1">
+                <li>Formulario corto para cargar egresos con nombre, monto y fecha.</li>
+                <li>Saldo calculado combinando ingresos POS y egresos.</li>
+                <li>Tabla histórica con opción de borrar movimientos erróneos.</li>
+              </ul>
+            </section>
+
+            <section id="help" class="glass rounded-2xl p-4 border border-white/10">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fa-solid fa-circle-question text-sky-300"></i>
+                <h3 class="text-lg font-extrabold">Ayuda</h3>
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed mb-2">
+                Recordatorios y tutoriales cortos integrados en la app principal: incluye ejemplos de WhatsApp,
+                estructura de plantillas de email y tips para documentar accesos y links.
+              </p>
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1">
+                <li>Snippets listos para compartir con clientes o revendedores.</li>
+                <li>Ejemplos de estructura de mensajes para entregar dominios, accesos y facturación.</li>
+                <li>Enlaces rápidos para volver al dashboard y seguir operando.</li>
+              </ul>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
