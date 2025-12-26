@@ -98,10 +98,12 @@ window.AAPPUtils = {
 
   async login() {
     this.authError = '';
+    this.appLoading = true;
     const email = (this.loginForm.email || '').trim();
     const password = (this.loginForm.password || '').trim();
     if (!email || !password) {
       this.authError = 'Completá email y contraseña.';
+      this.appLoading = false;
       return;
     }
 
@@ -121,10 +123,12 @@ window.AAPPUtils = {
       this.apiUnavailable = false;
       this.authError = '';
       await this.loadRemoteState();
+      this.appLoading = false;
     } catch (e) {
       console.error('Login falló', e);
       this.authError = e.message || 'No se pudo iniciar sesión.';
       this.isAuthenticated = false;
+      this.appLoading = false;
     }
   },
 
@@ -145,6 +149,7 @@ window.AAPPUtils = {
     this.authError = '';
     this.loginForm = { email: lastEmail, password: '' };
     this.db = this.normalizeDB({});
+    this.appLoading = false;
   },
 
   async submitPasswordChange() {

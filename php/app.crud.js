@@ -603,82 +603,331 @@ window.AAPPCrud = {
   },
 
   // Data tools
-  buildExportRows() {
-    const header = [
-      'area',
-      'id',
-      'name',
-      'company',
-      'url',
-      'logoUrl',
-      'registerUrl',
-      'loginUrl',
-      'provider',
-      'status',
-      'phone',
-      'saasId',
-      'clientId',
-      'planId',
-      'sourceType',
-      'sourceId',
-      'frequency',
-      'title',
-      'description',
-      'price',
-      'costPrice',
-      'salePrice',
-      'deliveryTime',
-      'requirements',
-      'adName',
-      'date',
-      'dailySpend',
-      'totalSpend',
-      'reach',
-      'views',
-      'costPerConversation',
-      'extraIds',
-      'email',
-      'buyerName',
-      'buyerEmail',
-      'paymentMethod',
-      'password',
-      'notes',
-      'links',
-      'amount',
-      'commission',
-      'savedAt',
-      'metaVersion'
-    ];
-    const normalizeCell = (value) => {
-      if (value === null || value === undefined) return '';
-      return String(value);
-    };
-    const buildRow = (area, data = {}) => header.map((key) => {
-      if (key === 'area') return normalizeCell(area);
-      if (key === 'extraIds') {
-        const extras = Array.isArray(data.extraIds) ? data.extraIds.join('|') : data.extraIds;
-        return normalizeCell(extras);
+  excelSheetConfig() {
+    return [
+      {
+        name: 'Empresas',
+        target: 'saas',
+        columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'name', label: 'Nombre' },
+          { key: 'url', label: 'URL' },
+          { key: 'logoUrl', label: 'Logo' },
+          { key: 'registerUrl', label: 'Registro' },
+          { key: 'loginUrl', label: 'Login' }
+        ],
+        serialize() {
+          return this.db.saas;
+        },
+        parseRow(record) {
+          return {
+            id: record.id || this.uid(),
+            name: record.name || '',
+            url: record.url || '',
+            logoUrl: record.logoUrl || '',
+            registerUrl: record.registerUrl || '',
+            loginUrl: record.loginUrl || ''
+          };
+        }
+      },
+      {
+        name: 'Dominios',
+        target: 'domains',
+        columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'name', label: 'Nombre' },
+          { key: 'saasId', label: 'Empresa ID' },
+          { key: 'clientId', label: 'Cliente ID' },
+          { key: 'provider', label: 'Proveedor' },
+          { key: 'status', label: 'Estado' },
+          { key: 'notes', label: 'Notas' }
+        ],
+        serialize() {
+          return this.db.domains;
+        },
+        parseRow(record) {
+          return {
+            id: record.id || this.uid(),
+            name: record.name || '',
+            saasId: record.saasId || '',
+            clientId: record.clientId || '',
+            provider: record.provider || '',
+            status: record.status || '',
+            notes: record.notes || ''
+          };
+        }
+      },
+      {
+        name: 'Planes',
+        target: 'plans',
+        columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'saasId', label: 'Empresa ID' },
+          { key: 'frequency', label: 'Frecuencia' },
+          { key: 'title', label: 'Título' },
+          { key: 'description', label: 'Descripción' },
+          { key: 'price', label: 'Precio' },
+          { key: 'features', label: 'Features (JSON)', format: (value) => JSON.stringify(value || []) },
+          { key: 'variableFeatures', label: 'Features variables (JSON)', format: (value) => JSON.stringify(value || []) }
+        ],
+        serialize() {
+          return this.db.plans;
+        },
+        parseRow(record, helpers) {
+          return {
+            id: record.id || this.uid(),
+            saasId: record.saasId || '',
+            frequency: record.frequency || '',
+            title: record.title || '',
+            description: record.description || '',
+            price: helpers.toNumber(record.price),
+            features: helpers.parseJSONList(record.features),
+            variableFeatures: helpers.parseJSONList(record.variableFeatures)
+          };
+        }
+      },
+      {
+        name: 'Campañas',
+        target: 'campaigns',
+        columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'saasId', label: 'Empresa ID' },
+          { key: 'adName', label: 'Anuncio / Nombre' },
+          { key: 'date', label: 'Fecha' },
+          { key: 'dailySpend', label: 'Gasto por día' },
+          { key: 'totalSpend', label: 'Gasto total' },
+          { key: 'reach', label: 'Alcance' },
+          { key: 'views', label: 'Visualizaciones' },
+          { key: 'costPerConversation', label: 'Costo por conversación' },
+          { key: 'notes', label: 'Notas' }
+        ],
+        serialize() {
+          return this.db.campaigns;
+        },
+        parseRow(record, helpers) {
+          return {
+            id: record.id || this.uid(),
+            saasId: record.saasId || '',
+            adName: record.adName || '',
+            date: record.date || '',
+            dailySpend: helpers.toNumber(record.dailySpend),
+            totalSpend: helpers.toNumber(record.totalSpend),
+            reach: helpers.toNumber(record.reach),
+            views: helpers.toNumber(record.views),
+            costPerConversation: helpers.toNumber(record.costPerConversation),
+            notes: record.notes || ''
+          };
+        }
+      },
+      {
+        name: 'Extras',
+        target: 'extras',
+        columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'saasId', label: 'Empresa ID' },
+          { key: 'name', label: 'Nombre' },
+          { key: 'price', label: 'Precio' },
+          { key: 'frequency', label: 'Frecuencia' },
+          { key: 'features', label: 'Features (JSON)', format: (value) => JSON.stringify(value || []) },
+          { key: 'variableFeatures', label: 'Features variables (JSON)', format: (value) => JSON.stringify(value || []) }
+        ],
+        serialize() {
+          return this.db.extras;
+        },
+        parseRow(record, helpers) {
+          return {
+            id: record.id || this.uid(),
+            saasId: record.saasId || '',
+            name: record.name || '',
+            price: helpers.toNumber(record.price),
+            frequency: record.frequency || '',
+            features: helpers.parseJSONList(record.features),
+            variableFeatures: helpers.parseJSONList(record.variableFeatures)
+          };
+        }
+      },
+      {
+        name: 'Revendedores',
+        target: 'resellers',
+        columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'saasId', label: 'Empresa ID' },
+          { key: 'sourceType', label: 'Tipo fuente' },
+          { key: 'sourceId', label: 'ID fuente' },
+          { key: 'costPrice', label: 'Costo' },
+          { key: 'salePrice', label: 'Venta' },
+          { key: 'deliveryTime', label: 'Tiempo de entrega' },
+          { key: 'requirements', label: 'Requisitos' }
+        ],
+        serialize() {
+          return this.db.resellers;
+        },
+        parseRow(record, helpers) {
+          return {
+            id: record.id || this.uid(),
+            saasId: record.saasId || '',
+            sourceType: record.sourceType || '',
+            sourceId: record.sourceId || '',
+            costPrice: helpers.toNumber(record.costPrice),
+            salePrice: helpers.toNumber(record.salePrice),
+            deliveryTime: record.deliveryTime || '',
+            requirements: record.requirements || ''
+          };
+        }
+      },
+      {
+        name: 'Partners',
+        target: 'partners',
+        columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'name', label: 'Nombre' },
+          { key: 'company', label: 'Empresa' },
+          { key: 'email', label: 'Email' },
+          { key: 'phone', label: 'Teléfono' },
+          { key: 'commission', label: 'Comisión' },
+          { key: 'notes', label: 'Notas' }
+        ],
+        serialize() {
+          return this.db.partners;
+        },
+        parseRow(record, helpers) {
+          return {
+            id: record.id || this.uid(),
+            name: record.name || '',
+            company: record.company || '',
+            email: record.email || '',
+            phone: record.phone || '',
+            commission: helpers.toNumber(record.commission),
+            notes: record.notes || ''
+          };
+        }
+      },
+      {
+        name: 'Clientes',
+        target: 'clients',
+        columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'name', label: 'Nombre' },
+          { key: 'saasId', label: 'Empresa ID' },
+          { key: 'planId', label: 'Plan ID' },
+          { key: 'extraIds', label: 'Extras IDs', format: (value) => Array.isArray(value) ? value.join('|') : (value || '') },
+          { key: 'email', label: 'Email' },
+          { key: 'password', label: 'Contraseña' },
+          { key: 'date', label: 'Fecha' },
+          { key: 'notes', label: 'Notas' },
+          { key: 'links', label: 'Links' }
+        ],
+        serialize() {
+          return this.db.clients;
+        },
+        parseRow(record, helpers) {
+          return {
+            id: record.id || this.uid(),
+            name: record.name || '',
+            saasId: record.saasId || '',
+            planId: record.planId || '',
+            extraIds: helpers.parseExtraIds(record.extraIds),
+            email: record.email || '',
+            password: record.password || '',
+            date: record.date || '',
+            notes: record.notes || '',
+            links: record.links || ''
+          };
+        }
+      },
+      {
+        name: 'POS Ventas',
+        target: 'posSales',
+        columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'buyerName', label: 'Cliente' },
+          { key: 'buyerEmail', label: 'Email' },
+          { key: 'saasId', label: 'Empresa ID' },
+          { key: 'planId', label: 'Plan ID' },
+          { key: 'extraIds', label: 'Extras IDs', format: (value) => Array.isArray(value) ? value.join('|') : (value || '') },
+          { key: 'date', label: 'Fecha' },
+          { key: 'paymentMethod', label: 'Método de pago' },
+          { key: 'amount', label: 'Total' },
+          { key: 'notes', label: 'Notas' }
+        ],
+        serialize() {
+          return this.db.posSales;
+        },
+        parseRow(record, helpers) {
+          return {
+            id: record.id || this.uid(),
+            buyerName: record.buyerName || '',
+            buyerEmail: record.buyerEmail || '',
+            saasId: record.saasId || '',
+            planId: record.planId || '',
+            extraIds: helpers.parseExtraIds(record.extraIds),
+            date: record.date || '',
+            paymentMethod: record.paymentMethod || '',
+            amount: helpers.toNumber(record.amount),
+            notes: record.notes || ''
+          };
+        }
+      },
+      {
+        name: 'Egresos',
+        target: 'expenses',
+        columns: [
+          { key: 'name', label: 'Concepto' },
+          { key: 'amount', label: 'Monto' },
+          { key: 'date', label: 'Fecha' }
+        ],
+        serialize() {
+          return this.db.expenses;
+        },
+        parseRow(record, helpers) {
+          return {
+            name: record.name || '',
+            amount: helpers.toNumber(record.amount),
+            date: record.date || ''
+          };
+        }
+      },
+      {
+        name: 'Meta',
+        columns: [
+          { key: 'savedAt', label: 'Guardado en' },
+          { key: 'metaVersion', label: 'Versión' }
+        ],
+        serialize() {
+          return [{
+            savedAt: this.db.meta?.savedAt || '',
+            metaVersion: this.db.meta?.version || 1
+          }];
+        },
+        parseRow(record, helpers) {
+          return {
+            savedAt: record.savedAt || '',
+            metaVersion: helpers.toNumber(record.metaVersion) || 1
+          };
+        },
+        handle(result, parsed) {
+          result.meta = {
+            version: parsed.metaVersion || 1,
+            savedAt: parsed.savedAt || ''
+          };
+        }
       }
-      return normalizeCell(data[key]);
+    ];
+  },
+
+  buildExportSheets() {
+    const configs = this.excelSheetConfig();
+    return configs.map((sheet) => {
+      const header = sheet.columns.map((col) => col.label);
+      const data = typeof sheet.serialize === 'function' ? (sheet.serialize.call(this) || []) : [];
+      const rows = data.map((item) => sheet.columns.map((col) => {
+        const value = item ? item[col.key] : '';
+        if (typeof col.format === 'function') return col.format.call(this, value, item);
+        if (Array.isArray(value)) return value.join('|');
+        return value ?? '';
+      }));
+      return { name: sheet.name, rows: [header, ...rows] };
     });
-
-    const rows = [header];
-    this.db.saas.forEach((item) => rows.push(buildRow('saas', item)));
-    this.db.domains.forEach((item) => rows.push(buildRow('domains', item)));
-    this.db.plans.forEach((item) => rows.push(buildRow('plans', item)));
-    this.db.campaigns.forEach((item) => rows.push(buildRow('campaigns', item)));
-    this.db.extras.forEach((item) => rows.push(buildRow('extras', item)));
-    this.db.resellers.forEach((item) => rows.push(buildRow('resellers', item)));
-    this.db.partners.forEach((item) => rows.push(buildRow('partners', item)));
-    this.db.clients.forEach((item) => rows.push(buildRow('clients', item)));
-    this.db.posSales.forEach((item) => rows.push(buildRow('posSales', item)));
-    this.db.expenses.forEach((item) => rows.push(buildRow('expenses', item)));
-    rows.push(buildRow('meta', {
-      savedAt: this.db.meta?.savedAt || '',
-      metaVersion: this.db.meta?.version || ''
-    }));
-
-    return rows;
   },
 
   exportAllExcel() {
@@ -686,10 +935,11 @@ window.AAPPCrud = {
       alert('No se encontró la librería XLSX.');
       return;
     }
-    const rows = this.buildExportRows();
-    const ws = window.XLSX.utils.aoa_to_sheet(rows);
     const wb = window.XLSX.utils.book_new();
-    window.XLSX.utils.book_append_sheet(wb, ws, 'AAPP');
+    this.buildExportSheets().forEach((sheet) => {
+      const ws = window.XLSX.utils.aoa_to_sheet(sheet.rows);
+      window.XLSX.utils.book_append_sheet(wb, ws, sheet.name.slice(0, 31));
+    });
     window.XLSX.writeFile(wb, `aapp_manager_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
   },
 
@@ -710,13 +960,7 @@ window.AAPPCrud = {
       try {
         const data = new Uint8Array(e.target.result);
         const workbook = window.XLSX.read(data, { type: 'array' });
-        const firstSheet = workbook.SheetNames?.[0];
-        if (!firstSheet) {
-          alert('El archivo no tiene hojas válidas.');
-          return;
-        }
-        const rows = window.XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1, raw: false });
-        const parsed = this.parseImportRows(rows);
+        const parsed = this.parseWorkbook(workbook);
         if (!parsed) return;
         this.db = this.normalizeDB(parsed);
         this.persist();
@@ -729,6 +973,84 @@ window.AAPPCrud = {
       }
     };
     reader.readAsArrayBuffer(file);
+  },
+
+  parseWorkbook(workbook) {
+    const sheetNames = workbook.SheetNames || [];
+    if (!sheetNames.length) {
+      alert('El archivo no tiene hojas válidas.');
+      return null;
+    }
+
+    const firstSheetName = sheetNames[0];
+    const previewRows = firstSheetName ? window.XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { header: 1, raw: false }) : [];
+    const previewHeader = Array.isArray(previewRows?.[0]) ? previewRows[0].map((h) => String(h || '').trim()) : [];
+    if (previewHeader.includes('area')) {
+      return this.parseImportRows(previewRows);
+    }
+
+    const result = {
+      saas: [],
+      domains: [],
+      plans: [],
+      campaigns: [],
+      extras: [],
+      resellers: [],
+      partners: [],
+      clients: [],
+      posSales: [],
+      expenses: [],
+      meta: { version: 1, savedAt: null }
+    };
+
+    const helpers = {
+      toNumber: (value) => {
+        if (value === null || value === undefined || value === '') return 0;
+        const normalized = String(value).replace(/[^0-9.,-]/g, '').replace(',', '.');
+        const parsed = Number(normalized);
+        return Number.isNaN(parsed) ? 0 : parsed;
+      },
+      parseExtraIds: (value) => String(value || '')
+        .split('|')
+        .map((item) => item.trim())
+        .filter(Boolean),
+      parseJSONList: (value, fallback = []) => {
+        if (!value) return Array.isArray(fallback) ? fallback : [];
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : (Array.isArray(fallback) ? fallback : []);
+        } catch {
+          return Array.isArray(fallback) ? fallback : [];
+        }
+      }
+    };
+
+    const configs = this.excelSheetConfig();
+    configs.forEach((sheet) => {
+      const ws = workbook.Sheets[sheet.name];
+      if (!ws) return;
+      const rows = window.XLSX.utils.sheet_to_json(ws, { header: 1, raw: false });
+      if (!rows.length) return;
+      const header = rows[0].map((h) => String(h || '').trim());
+      const indices = sheet.columns.map((col) => header.findIndex((h) => h === col.label));
+      rows.slice(1).forEach((row) => {
+        if (!row || row.every((cell) => cell === null || cell === undefined || cell === '')) return;
+        const record = {};
+        sheet.columns.forEach((col, idx) => {
+          const pos = indices[idx];
+          record[col.key] = pos >= 0 ? (row[pos] ?? '') : '';
+        });
+        const parsedRow = sheet.parseRow ? sheet.parseRow.call(this, record, helpers) : record;
+        if (parsedRow === null || parsedRow === undefined) return;
+        if (typeof sheet.handle === 'function') {
+          sheet.handle(result, parsedRow);
+        } else if (sheet.target && Array.isArray(result[sheet.target])) {
+          result[sheet.target].push(parsedRow);
+        }
+      });
+    });
+
+    return result;
   },
 
   parseImportRows(rows) {

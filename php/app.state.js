@@ -1,4 +1,5 @@
 window.AAPPState = () => ({
+  appLoading: true,
   isDark: true,
   activeTab: 'dashboard',
   q: '',
@@ -16,6 +17,7 @@ window.AAPPState = () => ({
     { key: 'domains', label: 'Dominios', icon: 'fa-globe' },
     { key: 'plans', label: 'Planes', icon: 'fa-tags' },
     { key: 'campaigns', label: 'Campañas', icon: 'fa-bullhorn' },
+    { key: 'campaignRegister', label: 'Registrar Campaña', icon: 'fa-bullseye' },
     { key: 'clients', label: 'Clientes', icon: 'fa-users' },
     { key: 'extras', label: 'Extras', icon: 'fa-puzzle-piece' },
     { key: 'resellers', label: 'Precios Revendedor', icon: 'fa-handshake' },

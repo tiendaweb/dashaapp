@@ -652,7 +652,20 @@ if (isset($_GET['action'])) {
   </style>
 </head>
 
-<body class="h-full bg-slate-950 text-slate-100">
+<body class="h-full bg-slate-950 text-slate-100" x-cloak>
+  <div
+    x-show="appLoading"
+    class="fixed inset-0 z-50 flex items-center justify-center px-4 bg-slate-950"
+    x-transition.opacity>
+    <div class="glass rounded-2xl p-6 ring-blue-soft w-full max-w-md text-center space-y-3">
+      <div class="w-12 h-12 mx-auto rounded-2xl flex items-center justify-center glass ring-blue-soft">
+        <i class="fa-solid fa-circle-notch fa-spin text-sky-300 text-xl"></i>
+      </div>
+      <div class="text-lg font-extrabold">Cargando panel…</div>
+      <div class="text-sm text-slate-300">Preparando tus datos y sesión.</div>
+    </div>
+  </div>
+
   <div x-show="authChecking" class="min-h-screen flex items-center justify-center px-4">
     <div class="glass rounded-2xl p-6 ring-blue-soft w-full max-w-md text-center space-y-3">
       <div class="w-12 h-12 mx-auto rounded-2xl flex items-center justify-center glass ring-blue-soft">
@@ -1414,6 +1427,81 @@ if (isset($_GET['action'])) {
         </div>
       </div>
 
+      <!-- Registrar Campaña -->
+      <div x-show="activeTab==='campaignRegister'" x-transition.opacity>
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <h2 class="text-lg font-extrabold">Registrar Campaña</h2>
+          <span class="badge text-xs px-2 py-1 rounded-lg">Carga rápida • Impacta en Campañas</span>
+          <div class="ml-auto flex items-center gap-2">
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetPosCampaignForm()">
+              <i class="fa-solid fa-rotate text-sky-300 mr-2"></i>Limpiar
+            </button>
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="activeTab='campaigns'">
+              <i class="fa-solid fa-table-list text-sky-300 mr-2"></i>Ver listado
+            </button>
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl p-4 ring-blue-soft mb-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs text-slate-300">Empresa</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.posCampaign.saasId">
+                <option value="">Seleccionar</option>
+                <template x-for="s in db.saas" :key="'pos-camp-saas-'+s.id">
+                  <option :value="s.id" x-text="s.name"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Fecha</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="date" x-model="forms.posCampaign.date" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Anuncio / Nombre</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.posCampaign.adName" placeholder="Meta Ads / Lead Ads / etc" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Gasto por día (ARS)</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.posCampaign.dailySpend" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Gasto total (ARS)</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.posCampaign.totalSpend" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Alcance</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.posCampaign.reach" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Visualizaciones</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.posCampaign.views" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Costo por conversación (ARS)</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.posCampaign.costPerConversation" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Notas</label>
+              <textarea class="input rounded-xl px-3 py-2 w-full min-h-[90px]" x-model="forms.posCampaign.notes" placeholder="Notas y observaciones"></textarea>
+            </div>
+          </div>
+
+          <div class="mt-4 flex justify-end flex-wrap gap-2">
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetPosCampaignForm()">
+              <i class="fa-solid fa-rotate text-sky-300 mr-2"></i>Limpiar
+            </button>
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="savePosCampaign()">
+              <i class="fa-solid fa-bullhorn text-sky-300 mr-2"></i>Registrar campaña
+            </button>
+          </div>
+        </div>
+
+        <div class="text-sm text-slate-400">
+          Todo lo que cargues acá se suma automáticamente al listado de <span class="text-sky-200 font-semibold">Campañas</span>.
+        </div>
+      </div>
+
       <!-- Clients -->
       <div x-show="activeTab==='clients'" x-transition.opacity>
         <div class="flex items-center gap-2 mb-3">
@@ -1805,66 +1893,14 @@ if (isset($_GET['action'])) {
           </div>
         </div>
 
-        <div class="glass rounded-2xl p-4 ring-blue-soft mb-4">
-          <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-            <div>
-              <div class="font-extrabold">POS Campañas</div>
-              <div class="text-sm text-slate-300">Registrá una campaña publicitaria rápido.</div>
-            </div>
-            <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetPosCampaignForm()">
-              <i class="fa-solid fa-rotate text-sky-300 mr-2"></i>Limpiar
-            </button>
+        <div class="glass rounded-2xl p-4 ring-blue-soft mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div class="font-extrabold">Campañas rápidas</div>
+            <div class="text-sm text-slate-300">Ahora se cargan desde <span class="font-semibold text-sky-200">Registrar Campaña</span>.</div>
           </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="text-xs text-slate-300">Empresa</label>
-              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.posCampaign.saasId">
-                <option value="">Seleccionar</option>
-                <template x-for="s in db.saas" :key="'pos-camp-saas-'+s.id">
-                  <option :value="s.id" x-text="s.name"></option>
-                </template>
-              </select>
-            </div>
-            <div>
-              <label class="text-xs text-slate-300">Fecha</label>
-              <input class="input rounded-xl px-3 py-2 w-full" type="date" x-model="forms.posCampaign.date" />
-            </div>
-            <div class="md:col-span-2">
-              <label class="text-xs text-slate-300">Anuncio / Nombre</label>
-              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.posCampaign.adName" placeholder="Meta Ads / Lead Ads / etc" />
-            </div>
-            <div>
-              <label class="text-xs text-slate-300">Gasto por día (ARS)</label>
-              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.posCampaign.dailySpend" />
-            </div>
-            <div>
-              <label class="text-xs text-slate-300">Gasto total (ARS)</label>
-              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.posCampaign.totalSpend" />
-            </div>
-            <div>
-              <label class="text-xs text-slate-300">Alcance</label>
-              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.posCampaign.reach" />
-            </div>
-            <div>
-              <label class="text-xs text-slate-300">Visualizaciones</label>
-              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.posCampaign.views" />
-            </div>
-            <div>
-              <label class="text-xs text-slate-300">Costo por conversación (ARS)</label>
-              <input class="input rounded-xl px-3 py-2 w-full" type="number" x-model.number="forms.posCampaign.costPerConversation" />
-            </div>
-            <div class="md:col-span-2">
-              <label class="text-xs text-slate-300">Notas</label>
-              <textarea class="input rounded-xl px-3 py-2 w-full min-h-[90px]" x-model="forms.posCampaign.notes" placeholder="Notas y observaciones"></textarea>
-            </div>
-          </div>
-
-          <div class="mt-4 flex justify-end">
-            <button class="btn rounded-xl px-3 py-2 text-sm" @click="savePosCampaign()">
-              <i class="fa-solid fa-bullhorn text-sky-300 mr-2"></i>Registrar campaña
-            </button>
-          </div>
+          <button class="btn rounded-xl px-3 py-2 text-sm" @click="activeTab='campaignRegister'">
+            <i class="fa-solid fa-bullhorn text-sky-300 mr-2"></i>Ir a Registrar Campaña
+          </button>
         </div>
 
         <div class="glass rounded-2xl overflow-hidden">
@@ -2748,9 +2784,6 @@ if (isset($_GET['action'])) {
               <div class="mt-3 flex gap-2">
                 <button class="btn rounded-xl px-3 py-2 text-sm" @click="importJSON()">
                   <i class="fa-solid fa-file-import text-sky-300 mr-2"></i>Importar
-                </button>
-                <button class="btn rounded-xl px-3 py-2 text-sm" @click="seedDemo()">
-                  <i class="fa-solid fa-wand-magic-sparkles text-sky-300 mr-2"></i>Cargar demo
                 </button>
               </div>
             </div>
