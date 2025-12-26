@@ -3,10 +3,12 @@ window.AAPPCore = {
     // Dark mode default
     this.applyDarkClass();
 
+    this.appLoading = true;
     // Comprobar sesión antes de cargar datos
     await this.checkSession();
     if (!this.isAuthenticated) {
       this.authChecking = false;
+      this.appLoading = false;
       return;
     }
 
@@ -18,6 +20,7 @@ window.AAPPCore = {
       this.seedMinimal({ persist: false });
     } finally {
       this.authChecking = false;
+      this.appLoading = false;
     }
 
     if (!this.forms.pos.date) this.forms.pos.date = this.todayISO();
@@ -121,7 +124,7 @@ window.AAPPCore = {
       resellerForm: (this.forms.reseller.id ? 'Editar plan revendedor' : 'Nuevo plan revendedor'),
       partnerForm: (this.forms.partner.id ? 'Editar partner' : 'Nuevo partner'),
       resellerHtml: 'Página de precios revendedor',
-      dataTools: 'Datos • Exportar / Importar / Demo',
+      dataTools: 'Datos • Exportar / Importar',
       changePassword: 'Cambiar contraseña'
     };
     this.modal.title = titles[view] || 'Formulario';
