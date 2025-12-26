@@ -4,6 +4,11 @@ window.AAPPState = () => ({
   q: '',
   importText: '',
   showSearch: false,
+  isAuthenticated: false,
+  authChecking: true,
+  authError: '',
+  authUser: null,
+  passwordFeedback: '',
 
   tabs: [
     { key: 'dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },
@@ -38,6 +43,8 @@ window.AAPPState = () => ({
   resellerHtml: '',
 
   modal: { open: false, view: '', title: '' },
+  loginForm: { email: 'admin@aapp.uno', password: '' },
+  passwordForm: { current: '', next: '', confirm: '' },
 
   // UI filters
   domainFilterSaasId: '',

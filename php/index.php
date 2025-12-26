@@ -1,4 +1,5 @@
 <?php
+session_start();
 require_once __DIR__ . '/config.php';
 
 try {
@@ -6,6 +7,14 @@ try {
 } catch (Throwable $e) {
     http_response_code(500);
     echo 'Error conectando a la base de datos: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+    exit;
+}
+
+function json_response(array $payload, int $status = 200): void
+{
+    header('Content-Type: application/json; charset=utf-8');
+    http_response_code($status);
+    echo json_encode($payload);
     exit;
 }
 
@@ -37,76 +46,525 @@ function default_state(): array
     ];
 }
 
-function load_state(PDO $pdo): array
+function run_sql_file(PDO $pdo, string $path): void
 {
-    ensure_state_table($pdo);
-    $stmt = $pdo->prepare('SELECT data FROM app_state WHERE id = 1 LIMIT 1');
-    $stmt->execute();
-    $row = $stmt->fetch();
-
-    if ($row && isset($row['data'])) {
-        $decoded = json_decode($row['data'], true);
-        return is_array($decoded) ? $decoded : default_state();
+    if (!is_readable($path)) {
+        return;
     }
-
-    $fresh = default_state();
-    save_state($pdo, $fresh);
-    return $fresh;
+    $sql = file_get_contents($path);
+    $chunks = array_filter(array_map('trim', preg_split('/;\s*(?:\r?\n|$)/', $sql)));
+    foreach ($chunks as $statement) {
+        if ($statement === '') {
+            continue;
+        }
+        try {
+            $pdo->exec($statement);
+        } catch (Throwable $e) {
+            error_log('Error ejecutando ' . $path . ': ' . $e->getMessage());
+        }
+    }
 }
 
-function save_state(PDO $pdo, array $data): void
+function ensure_schema(PDO $pdo): void
 {
+    static $ensured = false;
+    if ($ensured) {
+        return;
+    }
+    $sqlDir = realpath(__DIR__ . '/../sql');
+    if ($sqlDir === false) {
+        throw new RuntimeException('Directorio sql no encontrado.');
+    }
+    foreach (['database.sql', 'auth.sql'] as $file) {
+        $fullPath = $sqlDir . DIRECTORY_SEPARATOR . $file;
+        run_sql_file($pdo, $fullPath);
+    }
     ensure_state_table($pdo);
-    $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
+    $ensured = true;
+}
 
-    $stmt = $pdo->prepare('INSERT INTO app_state (id, data) VALUES (1, :data)
-      ON DUPLICATE KEY UPDATE data = VALUES(data), updated_at = CURRENT_TIMESTAMP');
-    $stmt->execute([':data' => $payload]);
+function decode_json_field($value): array
+{
+    $decoded = json_decode((string) $value, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+function load_database_state(PDO $pdo): array
+{
+    ensure_schema($pdo);
+    $state = default_state();
+
+    $state['saas'] = array_map(
+        fn($row) => [
+            'id' => $row['id'],
+            'name' => $row['name'] ?? '',
+            'url' => $row['url'] ?? '',
+            'logoUrl' => $row['logo_url'] ?? '',
+            'registerUrl' => $row['register_url'] ?? '',
+            'loginUrl' => $row['login_url'] ?? '',
+        ],
+        $pdo->query('SELECT id, name, url, logo_url, register_url, login_url FROM saas ORDER BY created_at ASC')->fetchAll()
+    );
+
+    $state['plans'] = array_map(
+        fn($row) => [
+            'id' => $row['id'],
+            'saasId' => $row['saas_id'] ?? '',
+            'frequency' => $row['frequency'] ?? '',
+            'title' => $row['title'] ?? '',
+            'description' => $row['description'] ?? '',
+            'price' => (float) ($row['price'] ?? 0),
+            'features' => decode_json_field($row['features'] ?? []),
+            'variableFeatures' => decode_json_field($row['variable_features'] ?? []),
+        ],
+        $pdo->query('SELECT * FROM plans ORDER BY created_at ASC')->fetchAll()
+    );
+
+    $state['extras'] = array_map(
+        fn($row) => [
+            'id' => $row['id'],
+            'saasId' => $row['saas_id'] ?? '',
+            'name' => $row['name'] ?? '',
+            'price' => (float) ($row['price'] ?? 0),
+            'frequency' => $row['frequency'] ?? '',
+            'features' => decode_json_field($row['features'] ?? []),
+            'variableFeatures' => decode_json_field($row['variable_features'] ?? []),
+        ],
+        $pdo->query('SELECT * FROM extras ORDER BY created_at ASC')->fetchAll()
+    );
+
+    $state['campaigns'] = array_map(
+        fn($row) => [
+            'id' => $row['id'],
+            'saasId' => $row['saas_id'] ?? '',
+            'adName' => $row['ad_name'] ?? '',
+            'date' => $row['date'] ?? '',
+            'dailySpend' => (float) ($row['daily_spend'] ?? 0),
+            'totalSpend' => (float) ($row['total_spend'] ?? 0),
+            'reach' => (int) ($row['reach'] ?? 0),
+            'views' => (int) ($row['views'] ?? 0),
+            'costPerConversation' => (float) ($row['cost_per_conversation'] ?? 0),
+            'notes' => $row['notes'] ?? '',
+        ],
+        $pdo->query('SELECT * FROM campaigns ORDER BY date DESC')->fetchAll()
+    );
+
+    $state['partners'] = array_map(
+        fn($row) => [
+            'id' => $row['id'],
+            'name' => $row['name'] ?? '',
+            'company' => $row['company'] ?? '',
+            'email' => $row['email'] ?? '',
+            'phone' => $row['phone'] ?? '',
+            'commission' => (float) ($row['commission'] ?? 0),
+            'notes' => $row['notes'] ?? '',
+        ],
+        $pdo->query('SELECT * FROM partners ORDER BY name ASC')->fetchAll()
+    );
+
+    $state['clients'] = array_map(
+        fn($row) => [
+            'id' => $row['id'],
+            'name' => $row['name'] ?? '',
+            'saasId' => $row['saas_id'] ?? '',
+            'planId' => $row['plan_id'] ?? '',
+            'extraIds' => decode_json_field($row['extra_ids'] ?? []),
+            'email' => $row['email'] ?? '',
+            'password' => $row['password'] ?? '',
+            'date' => $row['date'] ?? '',
+            'notes' => $row['notes'] ?? '',
+            'links' => $row['links'] ?? '',
+        ],
+        $pdo->query('SELECT * FROM clients ORDER BY date DESC')->fetchAll()
+    );
+
+    $state['domains'] = array_map(
+        fn($row) => [
+            'id' => $row['id'],
+            'name' => $row['name'] ?? '',
+            'saasId' => $row['saas_id'] ?? '',
+            'clientId' => $row['client_id'] ?? '',
+            'provider' => $row['provider'] ?? '',
+            'status' => $row['status'] ?? '',
+            'notes' => $row['notes'] ?? '',
+        ],
+        $pdo->query('SELECT * FROM domains ORDER BY name ASC')->fetchAll()
+    );
+
+    $state['resellers'] = array_map(
+        fn($row) => [
+            'id' => $row['id'],
+            'saasId' => $row['saas_id'] ?? '',
+            'sourceType' => $row['source_type'] ?? '',
+            'sourceId' => $row['source_id'] ?? '',
+            'costPrice' => (float) ($row['cost_price'] ?? 0),
+            'salePrice' => (float) ($row['sale_price'] ?? 0),
+            'deliveryTime' => $row['delivery_time'] ?? '',
+            'requirements' => $row['requirements'] ?? '',
+        ],
+        $pdo->query('SELECT * FROM resellers ORDER BY saas_id ASC')->fetchAll()
+    );
+
+    $state['posSales'] = array_map(
+        fn($row) => [
+            'id' => $row['id'],
+            'buyerName' => $row['buyer_name'] ?? '',
+            'buyerEmail' => $row['buyer_email'] ?? '',
+            'saasId' => $row['saas_id'] ?? '',
+            'planId' => $row['plan_id'] ?? '',
+            'extraIds' => decode_json_field($row['extra_ids'] ?? []),
+            'date' => $row['date'] ?? '',
+            'paymentMethod' => $row['payment_method'] ?? '',
+            'amount' => (float) ($row['amount'] ?? 0),
+            'notes' => $row['notes'] ?? '',
+        ],
+        $pdo->query('SELECT * FROM pos_sales ORDER BY date DESC')->fetchAll()
+    );
+
+    $state['expenses'] = array_map(
+        fn($row) => [
+            'id' => $row['id'],
+            'name' => $row['name'] ?? '',
+            'amount' => (float) ($row['amount'] ?? 0),
+            'date' => $row['date'] ?? '',
+        ],
+        $pdo->query('SELECT * FROM expenses ORDER BY date DESC, id DESC')->fetchAll()
+    );
+
+    $metaRow = $pdo->query('SELECT data, updated_at FROM app_state WHERE id = 1 LIMIT 1')->fetch();
+    if ($metaRow) {
+        $metaData = json_decode($metaRow['data'] ?? 'null', true);
+        $savedAt = $metaData['meta']['savedAt'] ?? ($metaRow['updated_at'] ?? null);
+        $state['meta'] = [
+            'version' => $metaData['meta']['version'] ?? 1,
+            'savedAt' => $savedAt,
+        ];
+    }
+
+    return $state;
+}
+
+function persist_database_state(PDO $pdo, array $data): void
+{
+    ensure_schema($pdo);
+    $state = default_state();
+    foreach (array_keys($state) as $key) {
+        if (array_key_exists($key, $data) && is_array($data[$key])) {
+            $state[$key] = $data[$key];
+        }
+    }
+
+    $tables = [
+        'pos_sales',
+        'resellers',
+        'domains',
+        'clients',
+        'partners',
+        'campaigns',
+        'extras',
+        'plans',
+        'saas',
+        'expenses'
+    ];
+
+    try {
+        $pdo->beginTransaction();
+        $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+        foreach ($tables as $table) {
+            $pdo->exec("TRUNCATE TABLE `$table`");
+        }
+
+        $saasStmt = $pdo->prepare('INSERT INTO saas (id, name, url, logo_url, register_url, login_url) VALUES (:id, :name, :url, :logo_url, :register_url, :login_url)');
+        foreach ($state['saas'] as $row) {
+            $saasStmt->execute([
+                ':id' => $row['id'],
+                ':name' => $row['name'] ?? '',
+                ':url' => $row['url'] ?? '',
+                ':logo_url' => $row['logoUrl'] ?? '',
+                ':register_url' => $row['registerUrl'] ?? '',
+                ':login_url' => $row['loginUrl'] ?? '',
+            ]);
+        }
+
+        $planStmt = $pdo->prepare('INSERT INTO plans (id, saas_id, frequency, title, description, price, features, variable_features) VALUES (:id, :saas_id, :frequency, :title, :description, :price, :features, :variable_features)');
+        foreach ($state['plans'] as $row) {
+            $planStmt->execute([
+                ':id' => $row['id'],
+                ':saas_id' => $row['saasId'] ?? '',
+                ':frequency' => $row['frequency'] ?? '',
+                ':title' => $row['title'] ?? '',
+                ':description' => $row['description'] ?? '',
+                ':price' => (float) ($row['price'] ?? 0),
+                ':features' => json_encode($row['features'] ?? [], JSON_UNESCAPED_UNICODE),
+                ':variable_features' => json_encode($row['variableFeatures'] ?? [], JSON_UNESCAPED_UNICODE),
+            ]);
+        }
+
+        $extraStmt = $pdo->prepare('INSERT INTO extras (id, saas_id, name, price, frequency, features, variable_features) VALUES (:id, :saas_id, :name, :price, :frequency, :features, :variable_features)');
+        foreach ($state['extras'] as $row) {
+            $extraStmt->execute([
+                ':id' => $row['id'],
+                ':saas_id' => $row['saasId'] ?? '',
+                ':name' => $row['name'] ?? '',
+                ':price' => (float) ($row['price'] ?? 0),
+                ':frequency' => $row['frequency'] ?? '',
+                ':features' => json_encode($row['features'] ?? [], JSON_UNESCAPED_UNICODE),
+                ':variable_features' => json_encode($row['variableFeatures'] ?? [], JSON_UNESCAPED_UNICODE),
+            ]);
+        }
+
+        $campaignStmt = $pdo->prepare('INSERT INTO campaigns (id, saas_id, ad_name, date, daily_spend, total_spend, reach, views, cost_per_conversation, notes) VALUES (:id, :saas_id, :ad_name, :date, :daily_spend, :total_spend, :reach, :views, :cost_per_conversation, :notes)');
+        foreach ($state['campaigns'] as $row) {
+            $campaignStmt->execute([
+                ':id' => $row['id'],
+                ':saas_id' => $row['saasId'] ?? '',
+                ':ad_name' => $row['adName'] ?? '',
+                ':date' => $row['date'] ?? null,
+                ':daily_spend' => (float) ($row['dailySpend'] ?? 0),
+                ':total_spend' => (float) ($row['totalSpend'] ?? 0),
+                ':reach' => (int) ($row['reach'] ?? 0),
+                ':views' => (int) ($row['views'] ?? 0),
+                ':cost_per_conversation' => (float) ($row['costPerConversation'] ?? 0),
+                ':notes' => $row['notes'] ?? '',
+            ]);
+        }
+
+        $partnerStmt = $pdo->prepare('INSERT INTO partners (id, name, company, email, phone, commission, notes) VALUES (:id, :name, :company, :email, :phone, :commission, :notes)');
+        foreach ($state['partners'] as $row) {
+            $partnerStmt->execute([
+                ':id' => $row['id'],
+                ':name' => $row['name'] ?? '',
+                ':company' => $row['company'] ?? '',
+                ':email' => $row['email'] ?? '',
+                ':phone' => $row['phone'] ?? '',
+                ':commission' => (float) ($row['commission'] ?? 0),
+                ':notes' => $row['notes'] ?? '',
+            ]);
+        }
+
+        $clientStmt = $pdo->prepare('INSERT INTO clients (id, saas_id, plan_id, name, email, password, extra_ids, date, notes, links) VALUES (:id, :saas_id, :plan_id, :name, :email, :password, :extra_ids, :date, :notes, :links)');
+        foreach ($state['clients'] as $row) {
+            $clientStmt->execute([
+                ':id' => $row['id'],
+                ':saas_id' => $row['saasId'] ?? '',
+                ':plan_id' => $row['planId'] ?? null,
+                ':name' => $row['name'] ?? '',
+                ':email' => $row['email'] ?? '',
+                ':password' => $row['password'] ?? '',
+                ':extra_ids' => json_encode($row['extraIds'] ?? [], JSON_UNESCAPED_UNICODE),
+                ':date' => $row['date'] ?? null,
+                ':notes' => $row['notes'] ?? '',
+                ':links' => $row['links'] ?? '',
+            ]);
+        }
+
+        $domainStmt = $pdo->prepare('INSERT INTO domains (id, name, saas_id, client_id, provider, status, notes) VALUES (:id, :name, :saas_id, :client_id, :provider, :status, :notes)');
+        foreach ($state['domains'] as $row) {
+            $domainStmt->execute([
+                ':id' => $row['id'],
+                ':name' => $row['name'] ?? '',
+                ':saas_id' => $row['saasId'] ?? '',
+                ':client_id' => $row['clientId'] ?? null,
+                ':provider' => $row['provider'] ?? '',
+                ':status' => $row['status'] ?? '',
+                ':notes' => $row['notes'] ?? '',
+            ]);
+        }
+
+        $resellerStmt = $pdo->prepare('INSERT INTO resellers (id, saas_id, source_type, source_id, cost_price, sale_price, delivery_time, requirements) VALUES (:id, :saas_id, :source_type, :source_id, :cost_price, :sale_price, :delivery_time, :requirements)');
+        foreach ($state['resellers'] as $row) {
+            $resellerStmt->execute([
+                ':id' => $row['id'],
+                ':saas_id' => $row['saasId'] ?? '',
+                ':source_type' => $row['sourceType'] ?? 'plan',
+                ':source_id' => $row['sourceId'] ?? '',
+                ':cost_price' => (float) ($row['costPrice'] ?? 0),
+                ':sale_price' => (float) ($row['salePrice'] ?? 0),
+                ':delivery_time' => $row['deliveryTime'] ?? '',
+                ':requirements' => $row['requirements'] ?? '',
+            ]);
+        }
+
+        $posStmt = $pdo->prepare('INSERT INTO pos_sales (id, buyer_name, buyer_email, saas_id, plan_id, extra_ids, date, payment_method, amount, notes) VALUES (:id, :buyer_name, :buyer_email, :saas_id, :plan_id, :extra_ids, :date, :payment_method, :amount, :notes)');
+        foreach ($state['posSales'] as $row) {
+            $posStmt->execute([
+                ':id' => $row['id'],
+                ':buyer_name' => $row['buyerName'] ?? '',
+                ':buyer_email' => $row['buyerEmail'] ?? '',
+                ':saas_id' => $row['saasId'] ?? '',
+                ':plan_id' => $row['planId'] ?? null,
+                ':extra_ids' => json_encode($row['extraIds'] ?? [], JSON_UNESCAPED_UNICODE),
+                ':date' => $row['date'] ?? null,
+                ':payment_method' => $row['paymentMethod'] ?? '',
+                ':amount' => (float) ($row['amount'] ?? 0),
+                ':notes' => $row['notes'] ?? '',
+            ]);
+        }
+
+        $expenseStmt = $pdo->prepare('INSERT INTO expenses (name, amount, date) VALUES (:name, :amount, :date)');
+        foreach ($state['expenses'] as $row) {
+            $expenseStmt->execute([
+                ':name' => $row['name'] ?? '',
+                ':amount' => (float) ($row['amount'] ?? 0),
+                ':date' => $row['date'] ?? null,
+            ]);
+        }
+
+        $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+        $pdo->commit();
+
+        $metaPayload = [
+            'meta' => [
+                'version' => isset($state['meta']['version']) ? (int) $state['meta']['version'] : 1,
+                'savedAt' => $state['meta']['savedAt'] ?? date(DATE_ATOM),
+            ],
+        ];
+        $stmt = $pdo->prepare('INSERT INTO app_state (id, data) VALUES (1, :data)
+          ON DUPLICATE KEY UPDATE data = VALUES(data), updated_at = CURRENT_TIMESTAMP');
+        $stmt->execute([':data' => json_encode($metaPayload, JSON_UNESCAPED_UNICODE)]);
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+        throw $e;
+    }
 }
 
 function reset_state(PDO $pdo): array
 {
     $fresh = default_state();
-    save_state($pdo, $fresh);
+    persist_database_state($pdo, $fresh);
     return $fresh;
 }
 
-if (isset($_GET['action'])) {
-    header('Content-Type: application/json; charset=utf-8');
-    $action = $_GET['action'];
+function find_user_by_email(PDO $pdo, string $email): ?array
+{
+    $stmt = $pdo->prepare('SELECT id, email, name, role, password_hash FROM users WHERE email = :email LIMIT 1');
+    $stmt->execute([':email' => $email]);
+    $user = $stmt->fetch();
+    return $user ?: null;
+}
 
+function find_user_by_id(PDO $pdo, int $id): ?array
+{
+    $stmt = $pdo->prepare('SELECT id, email, name, role, password_hash FROM users WHERE id = :id LIMIT 1');
+    $stmt->execute([':id' => $id]);
+    $user = $stmt->fetch();
+    return $user ?: null;
+}
+
+function get_authenticated_user(PDO $pdo): ?array
+{
+    if (empty($_SESSION['user_id'])) {
+        return null;
+    }
+    $user = find_user_by_id($pdo, (int) $_SESSION['user_id']);
+    if (!$user) {
+        return null;
+    }
+    return [
+        'id' => $user['id'],
+        'email' => $user['email'],
+        'name' => $user['name'],
+        'role' => $user['role'] ?? 'user',
+    ];
+}
+
+function require_auth(PDO $pdo): array
+{
+    $user = get_authenticated_user($pdo);
+    if (!$user) {
+        json_response(['success' => false, 'message' => 'No autorizado.'], 401);
+    }
+    return $user;
+}
+
+if (isset($_GET['action'])) {
+    $action = $_GET['action'];
     try {
+        ensure_schema($pdo);
+
+        if ($action === 'login') {
+            $payload = json_decode(file_get_contents('php://input'), true) ?? [];
+            $email = trim((string) ($payload['email'] ?? ''));
+            $password = (string) ($payload['password'] ?? '');
+            if (!$email || !$password) {
+                json_response(['success' => false, 'message' => 'Email y contraseña requeridos.'], 400);
+            }
+            $user = find_user_by_email($pdo, $email);
+            if (!$user || !password_verify($password, $user['password_hash'])) {
+                json_response(['success' => false, 'message' => 'Credenciales inválidas.'], 401);
+            }
+            $_SESSION['user_id'] = $user['id'];
+            json_response([
+                'success' => true,
+                'user' => [
+                    'id' => $user['id'],
+                    'email' => $user['email'],
+                    'name' => $user['name'],
+                    'role' => $user['role'] ?? 'user',
+                ],
+            ]);
+        }
+
+        if ($action === 'logout') {
+            session_destroy();
+            json_response(['success' => true]);
+        }
+
+        if ($action === 'session') {
+            $user = get_authenticated_user($pdo);
+            if (!$user) {
+                json_response(['success' => false, 'message' => 'No autorizado.'], 401);
+            }
+            json_response(['success' => true, 'user' => $user]);
+        }
+
+        if ($action === 'change_password') {
+            $user = require_auth($pdo);
+            $payload = json_decode(file_get_contents('php://input'), true) ?? [];
+            $current = (string) ($payload['currentPassword'] ?? '');
+            $new = (string) ($payload['newPassword'] ?? '');
+            if (!$current || !$new) {
+                json_response(['success' => false, 'message' => 'Completá las contraseñas.'], 400);
+            }
+            if (strlen($new) < 6) {
+                json_response(['success' => false, 'message' => 'La nueva contraseña es muy corta.'], 400);
+            }
+            $dbUser = find_user_by_id($pdo, (int) $user['id']);
+            if (!$dbUser || !password_verify($current, $dbUser['password_hash'])) {
+                json_response(['success' => false, 'message' => 'Contraseña actual incorrecta.'], 400);
+            }
+            $newHash = password_hash($new, PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare('UPDATE users SET password_hash = :hash WHERE id = :id');
+            $stmt->execute([':hash' => $newHash, ':id' => $dbUser['id']]);
+            json_response(['success' => true]);
+        }
+
         if ($action === 'load') {
-            echo json_encode(['success' => true, 'data' => load_state($pdo)]);
-            exit;
+            $user = require_auth($pdo);
+            json_response(['success' => true, 'data' => load_database_state($pdo), 'user' => $user]);
         }
 
         if ($action === 'save') {
+            require_auth($pdo);
             $input = file_get_contents('php://input');
             $payload = json_decode($input, true);
             if (!is_array($payload)) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'JSON inválido.']);
-                exit;
+                json_response(['success' => false, 'message' => 'JSON inválido.'], 400);
             }
-            save_state($pdo, $payload);
-            echo json_encode(['success' => true]);
-            exit;
+            persist_database_state($pdo, $payload);
+            json_response(['success' => true]);
         }
 
         if ($action === 'reset') {
+            require_auth($pdo);
             $fresh = reset_state($pdo);
-            echo json_encode(['success' => true, 'data' => $fresh]);
-            exit;
+            json_response(['success' => true, 'data' => $fresh]);
         }
 
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Acción no soportada.']);
-        exit;
+        json_response(['success' => false, 'message' => 'Acción no soportada.'], 400);
     } catch (Throwable $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Error de servidor: ' . $e->getMessage()]);
-        exit;
+        json_response(['success' => false, 'message' => 'Error de servidor: ' . $e->getMessage()], 500);
     }
 }
 ?>
@@ -195,7 +653,42 @@ if (isset($_GET['action'])) {
 </head>
 
 <body class="h-full bg-slate-950 text-slate-100">
-  <div class="min-h-screen md:flex">
+  <div x-show="authChecking" class="min-h-screen flex items-center justify-center px-4">
+    <div class="glass rounded-2xl p-6 ring-blue-soft w-full max-w-md text-center space-y-3">
+      <div class="w-12 h-12 mx-auto rounded-2xl flex items-center justify-center glass ring-blue-soft">
+        <i class="fa-solid fa-circle-notch fa-spin text-sky-300 text-xl"></i>
+      </div>
+      <div class="text-lg font-extrabold">Verificando sesión…</div>
+      <div class="text-sm text-slate-300">Cargando credenciales guardadas.</div>
+    </div>
+  </div>
+
+  <div x-show="!isAuthenticated && !authChecking" x-cloak class="min-h-screen flex items-center justify-center px-4">
+    <div class="glass rounded-2xl p-6 ring-blue-soft w-full max-w-md space-y-4">
+      <div>
+        <div class="text-sm uppercase tracking-wide text-slate-400">AAPP Manager</div>
+        <h1 class="text-2xl font-extrabold">Iniciar sesión</h1>
+        <p class="text-sm text-slate-300">Usuarios: <span class="font-semibold text-sky-200">admin@aapp.uno</span> y <span class="font-semibold text-sky-200">noelia@aapp.uno</span>.</p>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs text-slate-300">Email</label>
+          <input class="input rounded-xl px-3 py-2 w-full" type="email" x-model="loginForm.email" placeholder="admin@aapp.uno" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-300">Contraseña</label>
+          <input class="input rounded-xl px-3 py-2 w-full" type="password" x-model="loginForm.password" placeholder="••••••••" />
+        </div>
+        <p class="text-sm text-red-300" x-text="authError" x-show="authError"></p>
+        <button class="btn rounded-xl px-3 py-2 w-full text-sm font-semibold" @click="login()">
+          <i class="fa-solid fa-right-to-bracket text-sky-300 mr-2"></i>
+          Entrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div x-show="isAuthenticated && !authChecking" x-cloak class="min-h-screen md:flex">
     <!-- Sidebar (desktop) -->
     <aside class="hidden md:flex md:flex-col w-64 border-r border-white/10 bg-slate-950/80 backdrop-blur sticky top-0 h-screen">
       <div class="px-4 py-6 flex items-center gap-3">
@@ -246,7 +739,25 @@ if (isset($_GET['action'])) {
             </p>
           </div>
 
-          <div class="flex items-center gap-2 ml-auto">
+          <div class="flex items-center gap-2 ml-auto flex-wrap justify-end">
+            <div class="hidden md:flex items-center gap-2 rounded-xl px-3 py-2 border border-white/10 bg-white/5">
+              <i class="fa-solid fa-user text-sky-300"></i>
+              <div class="leading-tight text-xs">
+                <div class="font-semibold" x-text="authUser?.email || 'Sesión'"></div>
+                <div class="text-slate-400" x-text="authUser?.role ? 'Rol: ' + authUser.role : ''"></div>
+              </div>
+            </div>
+
+            <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="openModal('changePassword')">
+              <i class="fa-solid fa-key text-sky-300"></i>
+              <span class="hidden sm:inline">Cambiar clave</span>
+            </button>
+
+            <button class="btn-danger rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="logout()">
+              <i class="fa-solid fa-arrow-right-from-bracket"></i>
+              <span class="hidden sm:inline">Salir</span>
+            </button>
+
             <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="toggleDark()">
               <i class="fa-solid" :class="isDark ? 'fa-moon text-sky-300' : 'fa-sun text-yellow-300'"></i>
               <span class="hidden sm:inline" x-text="isDark ? 'Dark' : 'Light'"></span>
@@ -2169,6 +2680,33 @@ if (isset($_GET['action'])) {
               </div>
             </div>
             <textarea class="input rounded-2xl px-3 py-2 w-full min-h-[220px]" x-model="resellerHtml" readonly></textarea>
+          </div>
+        </div>
+
+        <!-- Change password -->
+        <div x-show="modal.view==='changePassword'">
+          <div class="space-y-3">
+            <div>
+              <label class="text-xs text-slate-300">Contraseña actual</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="password" x-model="passwordForm.current" placeholder="Actual" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Nueva contraseña</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="password" x-model="passwordForm.next" placeholder="Nueva" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Repetir nueva contraseña</label>
+              <input class="input rounded-xl px-3 py-2 w-full" type="password" x-model="passwordForm.confirm" placeholder="Repetir" />
+            </div>
+            <p class="text-sm" :class="passwordFeedback ? (passwordFeedback.toLowerCase().includes('actualizada') ? 'text-emerald-200' : 'text-red-300') : 'text-slate-400'">
+              <span x-text="passwordFeedback || 'Mínimo 6 caracteres. Solo vos podés cambiar tu contraseña.'"></span>
+            </p>
+            <div class="flex gap-2 pt-1">
+              <button class="btn rounded-xl px-3 py-2 text-sm" @click="submitPasswordChange()">
+                <i class="fa-solid fa-key text-sky-300 mr-2"></i>Guardar nueva contraseña
+              </button>
+              <button class="btn rounded-xl px-3 py-2 text-sm" @click="closeModal()">Cancelar</button>
+            </div>
           </div>
         </div>
 

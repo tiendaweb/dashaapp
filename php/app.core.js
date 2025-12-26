@@ -3,18 +3,21 @@ window.AAPPCore = {
     // Dark mode default
     this.applyDarkClass();
 
-    // Load DB desde servidor
+    // Comprobar sesión antes de cargar datos
+    await this.checkSession();
+    if (!this.isAuthenticated) {
+      this.authChecking = false;
+      return;
+    }
+
     try {
-      const remote = await this.fetchStateFromServer();
-      if (remote) {
-        this.db = this.normalizeDB(remote);
-      } else {
-        this.seedMinimal();
-      }
+      await this.loadRemoteState();
     } catch (e) {
       console.warn('No se pudo cargar la base de datos remota, usando seed mínimo.', e);
       this.apiUnavailable = true;
       this.seedMinimal({ persist: false });
+    } finally {
+      this.authChecking = false;
     }
 
     if (!this.forms.pos.date) this.forms.pos.date = this.todayISO();
@@ -66,6 +69,10 @@ window.AAPPCore = {
   },
 
   persist() {
+    if (!this.isAuthenticated) {
+      console.warn('No autenticado. Iniciá sesión para guardar.');
+      return;
+    }
     if (this.apiUnavailable) {
       console.warn('API no disponible, no se guarda el estado todavía.');
       return;
@@ -76,6 +83,17 @@ window.AAPPCore = {
       this.apiUnavailable = true;
       alert('No se pudo guardar en la base de datos MySQL. Verificá la conexión.');
     });
+  },
+
+  async loadRemoteState() {
+    const remote = await this.fetchStateFromServer();
+    if (remote) {
+      this.db = this.normalizeDB(remote);
+    } else {
+      this.seedMinimal();
+    }
+    if (!this.forms.pos.date) this.forms.pos.date = this.todayISO();
+    if (!this.forms.posCampaign.date) this.forms.posCampaign.date = this.todayISO();
   },
 
   toggleDark() {
@@ -103,7 +121,8 @@ window.AAPPCore = {
       resellerForm: (this.forms.reseller.id ? 'Editar plan revendedor' : 'Nuevo plan revendedor'),
       partnerForm: (this.forms.partner.id ? 'Editar partner' : 'Nuevo partner'),
       resellerHtml: 'Página de precios revendedor',
-      dataTools: 'Datos • Exportar / Importar / Demo'
+      dataTools: 'Datos • Exportar / Importar / Demo',
+      changePassword: 'Cambiar contraseña'
     };
     this.modal.title = titles[view] || 'Formulario';
 
@@ -116,5 +135,7 @@ window.AAPPCore = {
   closeModal() {
     this.modal.open = false;
     this.modal.view = '';
+    this.passwordFeedback = '';
+    this.passwordForm = { current: '', next: '', confirm: '' };
   }
 };
