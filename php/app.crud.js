@@ -568,6 +568,18 @@ window.AAPPCrud = {
     if (ok) alert('HTML copiado.');
     else alert('No se pudo copiar el HTML.');
   },
+  downloadResellerHTML() {
+    this.refreshResellerHTML();
+    const blob = new Blob([this.resellerHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `precios_revendedor_${new Date().toISOString().slice(0, 10)}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
 
   // Manual expenses
   addExpense() {

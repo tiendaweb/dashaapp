@@ -115,7 +115,7 @@ if (isset($_GET['action'])) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AAPP Manager — Dashboard</title>
+  <title>AAPP — Dashboard</title>
 
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -127,6 +127,7 @@ if (isset($_GET['action'])) {
   <script defer src="app.filters.js"></script>
   <script defer src="app.relations.js"></script>
   <script defer src="app.reports.js"></script>
+  <script defer src="app.bulk.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script defer src="app.crud.js"></script>
   <script defer src="app.seeds.js"></script>
@@ -189,6 +190,7 @@ if (isset($_GET['action'])) {
       box-shadow: 0 0 0 3px rgba(56,189,248,.15);
     }
     .table th { position: sticky; top: 0; background: rgba(2,6,23,.95); }
+    [x-cloak] { display: none !important; }
   </style>
 </head>
 
@@ -202,7 +204,7 @@ if (isset($_GET['action'])) {
         </div>
         <div>
           <h1 class="text-base font-extrabold tracking-tight">
-            AAPP Manager
+            AAPP
           </h1>
           <p class="text-xs text-slate-300">Dashboard local</p>
         </div>
@@ -237,10 +239,10 @@ if (isset($_GET['action'])) {
           </div>
           <div class="flex-1 md:hidden">
             <h1 class="text-lg md:text-xl font-extrabold tracking-tight">
-              AAPP Manager <span class="text-sky-300">•</span> Dashboard
+              AAPP <span class="text-sky-300">•</span> Dashboard
             </h1>
             <p class="text-xs md:text-sm text-slate-300">
-              PHP + MySQL • CRUD • Relaciones • Resúmenes
+              Dashboard
             </p>
           </div>
 
@@ -259,6 +261,11 @@ if (isset($_GET['action'])) {
               <i class="fa-solid fa-file-excel text-sky-300"></i>
               <span class="hidden sm:inline">Exportar Excel</span>
             </button>
+
+            <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="showSearch = !showSearch">
+              <i class="fa-solid fa-magnifying-glass text-sky-300"></i>
+              <span class="hidden sm:inline" x-text="showSearch ? 'Ocultar búsqueda' : 'Buscar'"></span>
+            </button>
           </div>
         </div>
       </header>
@@ -266,24 +273,28 @@ if (isset($_GET['action'])) {
       <!-- Main -->
       <main class="flex-1 w-full max-w-none px-4 py-6 pb-24 md:pb-6">
 
-    <!-- Controls -->
-    <section class="glass rounded-2xl p-3 ring-blue-soft">
-      <div class="flex flex-wrap items-center gap-3">
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-slate-300">Sección</span>
-          <span class="badge text-xs px-2 py-1 rounded-lg" x-text="tabs.find(t => t.key === activeTab)?.label || ''"></span>
-        </div>
-        <div class="ml-auto flex items-center gap-2">
-          <input class="input rounded-xl px-3 py-2 text-sm w-64 max-w-full"
-                 placeholder="Buscar por nombre / URL / notas…"
-                 x-model="q" />
-          <span class="badge text-xs px-2 py-1 rounded-lg" x-text="'Registros: ' + totalRecordsFiltered()"></span>
-        </div>
-      </div>
-    </section>
+        <!-- Controls -->
+        <section
+          class="glass rounded-2xl p-3 ring-blue-soft"
+          x-show="showSearch"
+          x-transition
+          x-cloak>
+          <div class="flex flex-wrap items-start gap-3">
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-300">Sección</span>
+              <span class="badge text-xs px-2 py-1 rounded-lg" x-text="tabs.find(t => t.key === activeTab)?.label || ''"></span>
+            </div>
+            <div class="w-full md:w-auto md:ml-auto flex flex-col md:flex-row md:items-center gap-2">
+              <input class="input rounded-xl px-3 py-2 text-sm w-full md:w-64"
+                     placeholder="Buscar por nombre / URL / notas…"
+                     x-model="q" />
+              <span class="badge text-xs px-2 py-1 rounded-lg md:self-auto" x-text="'Registros: ' + totalRecordsFiltered()"></span>
+            </div>
+          </div>
+        </section>
 
-    <!-- Content -->
-    <section class="mt-4">
+        <!-- Content -->
+        <section class="mt-4">
       <!-- Dashboard -->
       <div x-show="activeTab==='dashboard'" x-transition.opacity>
         <div class="flex items-center gap-2 mb-3">
@@ -2151,6 +2162,9 @@ if (isset($_GET['action'])) {
                 </button>
                 <button class="btn rounded-xl px-3 py-2 text-sm" @click="copyResellerHTML()">
                   <i class="fa-solid fa-copy text-sky-300 mr-2"></i>Copiar HTML
+                </button>
+                <button class="btn rounded-xl px-3 py-2 text-sm" @click="downloadResellerHTML()">
+                  <i class="fa-solid fa-download text-sky-300 mr-2"></i>Descargar HTML
                 </button>
               </div>
             </div>
