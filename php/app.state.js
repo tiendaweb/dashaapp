@@ -3,6 +3,7 @@ window.AAPPState = () => ({
   activeTab: 'dashboard',
   q: '',
   importText: '',
+  showSearch: false,
 
   tabs: [
     { key: 'dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },
