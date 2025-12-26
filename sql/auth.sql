@@ -1,0 +1,17 @@
+CREATE TABLE IF NOT EXISTS users (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  name VARCHAR(255) DEFAULT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  role VARCHAR(50) DEFAULT 'user',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO users (email, name, password_hash, role)
+VALUES
+  ('admin@aapp.uno', 'Administrador', '$2y$12$18.5ETI6Zx7Lfvj58tlGh.AsRLS5LBTPWBo2q9BK0qL/Ni7Zb4SR6', 'admin'),
+  ('noelia@aapp.uno', 'Noelia', '$2y$12$f449llRcpKKYWtPELbQyu.fHye5ei6pwT5DcpCNMZ26VHJCulD.u.', 'user')
+ON DUPLICATE KEY UPDATE
+  name = VALUES(name),
+  role = VALUES(role);
