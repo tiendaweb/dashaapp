@@ -877,11 +877,16 @@ if (isset($_GET['action'])) {
         aquaClockDate: '',
         aquaBackdrop: '',
         aquaBackgroundUrl: '',
+        aquaCustomBackgroundInput: '',
+        aquaBackgroundMessage: '',
         aquaBackgroundLoading: false,
         aquaBackdropOverlay: 'linear-gradient(140deg, rgba(15,23,42,.65), rgba(2,6,23,.55))',
+        isMobileViewport: window.innerWidth < 768,
+        handleResize: null,
         backgroundStorageKey: 'aapp:aqua:backdrop',
-        async changeBackdrop() {
+        async changeBackdrop(customUrl = '') {
           this.aquaBackgroundLoading = true;
+          this.aquaBackgroundMessage = '';
           const fallback = () => {
             if (this.aquaBackgroundUrl) {
               this.setBackdrop(this.aquaBackgroundUrl);
@@ -891,23 +896,32 @@ if (isset($_GET['action'])) {
           };
 
           try {
-            const res = await fetch('https://source.unsplash.com/random/1600x900/?nature,landscape', { cache: 'no-store' });
-            const finalUrl = res?.url;
-            if (finalUrl) {
-              this.setBackdrop(finalUrl);
-              this.safeStorageSet(this.backgroundStorageKey, finalUrl);
-            } else {
-              fallback();
-            }
+            const baseUrl = (customUrl || '').trim() || 'https://source.unsplash.com/1600x900/?nature,landscape';
+            const targetUrl = customUrl ? baseUrl : `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}sig=${Date.now()}`;
+            const finalUrl = await this.preloadBackdrop(targetUrl);
+            this.setBackdrop(finalUrl);
+            this.safeStorageSet(this.backgroundStorageKey, finalUrl);
+            this.aquaBackgroundMessage = customUrl ? 'Fondo personalizado aplicado.' : 'Fondo actualizado.';
           } catch (e) {
             console.warn('No se pudo actualizar el fondo.', e);
+            this.aquaBackgroundMessage = 'No se pudo cargar la imagen. Revisá la conexión o la URL.';
             fallback();
           } finally {
             this.aquaBackgroundLoading = false;
           }
         },
+        preloadBackdrop(url) {
+          return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.referrerPolicy = 'no-referrer';
+            img.onload = () => resolve(img.src || url);
+            img.onerror = () => reject(new Error('No se pudo cargar la imagen.'));
+            img.src = url;
+          });
+        },
         setBackdrop(url) {
           if (!url) {
+            this.aquaBackgroundUrl = '';
             this.aquaBackdrop = this.aquaBackdropOverlay;
             return;
           }
@@ -922,6 +936,14 @@ if (isset($_GET['action'])) {
           }
           this.changeBackdrop();
         },
+        applyCustomBackdrop() {
+          const url = (this.aquaCustomBackgroundInput || '').trim();
+          if (!url) {
+            this.aquaBackgroundMessage = 'Pegá una URL de imagen para usarla como fondo.';
+            return;
+          }
+          return this.changeBackdrop(url);
+        },
         startClock() {
           const update = () => {
             const now = new Date();
@@ -931,9 +953,17 @@ if (isset($_GET['action'])) {
           update();
           setInterval(update, 1000);
         },
+        setupResizeListener() {
+          this.handleResize = () => {
+            this.isMobileViewport = window.innerWidth < 768;
+          };
+          this.handleResize();
+          window.addEventListener('resize', this.handleResize);
+        },
         init() {
           this.restoreBackdrop();
           this.startClock();
+          this.setupResizeListener();
           return base.init.call(this);
         }
       };
@@ -1025,7 +1055,7 @@ if (isset($_GET['action'])) {
     backgroundImage: aquaBackdrop,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
-    backgroundAttachment: 'fixed',
+    backgroundAttachment: isMobileViewport ? 'scroll' : 'fixed',
     backgroundColor: '#030712'
   }">
   <div class="ink-blob one -z-10"></div>
@@ -1188,7 +1218,7 @@ if (isset($_GET['action'])) {
           <div class="glass-strong rounded-3xl p-6 ring-blue-soft relative overflow-hidden w-full">
             <div class="absolute inset-0 pointer-events-none opacity-70" style="background: radial-gradient(circle at 20% 20%, rgba(59,130,246,.28), transparent 40%), radial-gradient(circle at 80% 10%, rgba(94,234,212,.18), transparent 36%), linear-gradient(120deg, rgba(15,23,42,.35), rgba(15,23,42,.1));"></div>
             <div class="relative z-10">
-              <div class="flex flex-wrap items-start gap-4 justify-between">
+              <div class="flex flex-col sm:flex-row flex-wrap items-start gap-4 justify-between">
                 <div>
                   <p class="text-xs uppercase tracking-[0.2em] text-sky-200/80">Inicio rápido</p>
                   <h2 class="text-2xl font-black flex items-center gap-2">
@@ -1201,19 +1231,19 @@ if (isset($_GET['action'])) {
                 <div class="text-4xl font-black text-sky-100 drop-shadow-sm" x-text="aquaClockTime"></div>
                 <div class="text-sm text-slate-200" x-text="aquaClockDate"></div>
               </div>
-            </div>
+              </div>
 
-              <div class="flex flex-wrap gap-2 mt-4">
-                <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="openModal('settings')">
+              <div class="flex flex-col sm:flex-row flex-wrap gap-2 mt-4">
+                <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start" @click="openModal('settings')">
                   <i class="fa-solid fa-gear text-sky-300"></i>
                   <span>Ajustes</span>
                 </button>
-                <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="openModal('dataTools')">
+                <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start" @click="openModal('dataTools')">
                   <i class="fa-solid fa-database text-sky-300"></i>
                   <span>Datos</span>
                 </button>
                 <button
-                  class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto justify-center sm:justify-start"
                   :disabled="aquaBackgroundLoading"
                   @click="changeBackdrop()">
                   <i class="fa-solid" :class="aquaBackgroundLoading ? 'fa-circle-notch fa-spin text-sky-300' : 'fa-image text-sky-300'"></i>
@@ -3554,21 +3584,51 @@ if (isset($_GET['action'])) {
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div class="font-extrabold">Fondo del escritorio</div>
-                  <div class="text-sm text-slate-300">Imagen de Unsplash de naturaleza. Se mantiene hasta que la cambies.</div>
+                  <div class="text-sm text-slate-300">Imagen de Unsplash de naturaleza o una URL propia. Se mantiene hasta que la cambies.</div>
                   <div class="text-xs text-slate-400 mt-2" x-text="aquaBackgroundUrl ? 'Fondo actual guardado' : 'Fondo generado automáticamente'"></div>
                 </div>
                 <div class="w-full md:w-48 h-28 rounded-xl overflow-hidden border border-white/10 bg-white/5">
                   <div class="w-full h-full" :style="{ backgroundImage: aquaBackdrop, backgroundSize: 'cover', backgroundPosition: 'center' }"></div>
                 </div>
               </div>
-              <div class="mt-3 flex flex-wrap gap-2">
-                <button
-                  class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                  :disabled="aquaBackgroundLoading"
-                  @click="changeBackdrop()">
-                  <i class="fa-solid" :class="aquaBackgroundLoading ? 'fa-circle-notch fa-spin text-sky-300' : 'fa-image text-sky-300'"></i>
-                  <span x-text="aquaBackgroundLoading ? 'Cambiando fondo…' : 'Cambiar fondo'"></span>
-                </button>
+              <div class="mt-3 space-y-3">
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    :disabled="aquaBackgroundLoading"
+                    @click="changeBackdrop()">
+                    <i class="fa-solid" :class="aquaBackgroundLoading ? 'fa-circle-notch fa-spin text-sky-300' : 'fa-image text-sky-300'"></i>
+                    <span x-text="aquaBackgroundLoading ? 'Cambiando fondo…' : 'Cambiar fondo'"></span>
+                  </button>
+                  <button
+                    class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    :disabled="aquaBackgroundLoading"
+                    @click="applyCustomBackdrop()">
+                    <i class="fa-solid" :class="aquaBackgroundLoading ? 'fa-circle-notch fa-spin text-sky-300' : 'fa-link text-sky-300'"></i>
+                    <span x-text="aquaBackgroundLoading ? 'Aplicando…' : 'Usar URL personalizada'"></span>
+                  </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                  <div class="md:col-span-2">
+                    <label class="text-xs text-slate-300">URL de imagen (JPG/PNG/WebP)</label>
+                    <input
+                      class="input rounded-xl px-3 py-2 w-full"
+                      type="url"
+                      placeholder="https://ejemplo.com/fondo.jpg"
+                      x-model.trim="aquaCustomBackgroundInput"
+                      :disabled="aquaBackgroundLoading" />
+                  </div>
+                  <div class="space-y-2">
+                    <button
+                      class="btn rounded-xl px-3 py-2 text-sm w-full flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                      :disabled="aquaBackgroundLoading"
+                      @click="applyCustomBackdrop()">
+                      <i class="fa-solid" :class="aquaBackgroundLoading ? 'fa-circle-notch fa-spin text-sky-300' : 'fa-check text-sky-300'"></i>
+                      <span x-text="aquaBackgroundLoading ? 'Aplicando…' : 'Aplicar'"></span>
+                    </button>
+                    <p class="text-xs text-slate-400" x-text="aquaBackgroundMessage"></p>
+                  </div>
+                </div>
               </div>
             </div>
 
