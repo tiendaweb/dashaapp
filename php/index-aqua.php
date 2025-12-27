@@ -872,19 +872,55 @@ if (isset($_GET['action'])) {
       const base = window.AAPPApp();
       return {
         ...base,
-        aquaHomeOpen: false,
+        aquaHomeOpen: true,
         aquaClockTime: '',
         aquaClockDate: '',
         aquaBackdrop: '',
-        aquaBackgrounds: [
-          'linear-gradient(135deg, rgba(14,165,233,.25), rgba(6,182,212,.08)), radial-gradient(circle at 20% 20%, rgba(59,130,246,.35), transparent 45%), radial-gradient(circle at 80% 0%, rgba(94,234,212,.25), transparent 40%), linear-gradient(200deg, rgba(14,165,233,.15), rgba(59,130,246,.05))',
-          'radial-gradient(circle at 10% 10%, rgba(14,165,233,.28), transparent 40%), radial-gradient(circle at 90% 15%, rgba(59,130,246,.24), transparent 35%), linear-gradient(145deg, rgba(45,212,191,.16), rgba(6,182,212,.04)), linear-gradient(320deg, rgba(59,130,246,.14), rgba(14,165,233,.02))',
-          'radial-gradient(circle at 25% 30%, rgba(59,130,246,.3), transparent 38%), radial-gradient(circle at 80% 60%, rgba(34,211,238,.25), transparent 40%), linear-gradient(120deg, rgba(14,165,233,.2), rgba(6,182,212,.05))',
-          'linear-gradient(160deg, rgba(6,182,212,.18), rgba(59,130,246,.08)), radial-gradient(circle at 15% 70%, rgba(59,130,246,.22), transparent 42%), radial-gradient(circle at 85% 20%, rgba(45,212,191,.2), transparent 40%)'
-        ],
-        pickRandomBackground() {
-          const idx = Math.floor(Math.random() * this.aquaBackgrounds.length);
-          return this.aquaBackgrounds[idx];
+        aquaBackgroundUrl: '',
+        aquaBackgroundLoading: false,
+        aquaBackdropOverlay: 'linear-gradient(140deg, rgba(15,23,42,.65), rgba(2,6,23,.55))',
+        backgroundStorageKey: 'aapp:aqua:backdrop',
+        async changeBackdrop() {
+          this.aquaBackgroundLoading = true;
+          const fallback = () => {
+            if (this.aquaBackgroundUrl) {
+              this.setBackdrop(this.aquaBackgroundUrl);
+            } else {
+              this.aquaBackdrop = this.aquaBackdropOverlay;
+            }
+          };
+
+          try {
+            const res = await fetch('https://source.unsplash.com/random/1600x900/?nature,landscape', { cache: 'no-store' });
+            const finalUrl = res?.url;
+            if (finalUrl) {
+              this.setBackdrop(finalUrl);
+              this.safeStorageSet(this.backgroundStorageKey, finalUrl);
+            } else {
+              fallback();
+            }
+          } catch (e) {
+            console.warn('No se pudo actualizar el fondo.', e);
+            fallback();
+          } finally {
+            this.aquaBackgroundLoading = false;
+          }
+        },
+        setBackdrop(url) {
+          if (!url) {
+            this.aquaBackdrop = this.aquaBackdropOverlay;
+            return;
+          }
+          this.aquaBackgroundUrl = url;
+          this.aquaBackdrop = `${this.aquaBackdropOverlay}, url('${url}')`;
+        },
+        restoreBackdrop() {
+          const saved = this.safeStorageGet(this.backgroundStorageKey);
+          if (saved) {
+            this.setBackdrop(saved);
+            return;
+          }
+          this.changeBackdrop();
         },
         startClock() {
           const update = () => {
@@ -896,7 +932,7 @@ if (isset($_GET['action'])) {
           setInterval(update, 1000);
         },
         init() {
-          this.aquaBackdrop = this.pickRandomBackground();
+          this.restoreBackdrop();
           this.startClock();
           return base.init.call(this);
         }
@@ -1045,7 +1081,10 @@ if (isset($_GET['action'])) {
 
   <div x-show="isAuthenticated && !authChecking" x-cloak class="min-h-screen md:flex">
     <!-- Sidebar (desktop) -->
-    <aside class="hidden md:flex md:flex-col w-64 border-r border-white/10 bg-slate-950/80 backdrop-blur sticky top-0 h-screen">
+    <aside
+      class="hidden md:flex md:flex-col w-64 border-r border-white/10 bg-slate-950/80 backdrop-blur sticky top-0 h-screen"
+      x-show="!aquaHomeOpen"
+      x-transition.opacity>
       <div class="px-4 py-6 flex items-center gap-3">
         <div class="w-10 h-10 rounded-2xl flex items-center justify-center glass ring-blue-soft">
           <i class="fa-solid fa-layer-group text-sky-300"></i>
@@ -1078,9 +1117,13 @@ if (isset($_GET['action'])) {
       </div>
     </aside>
 
-    <div class="flex-1 flex flex-col min-h-screen">
+    <div class="flex-1 flex flex-col min-h-screen" :class="aquaHomeOpen ? 'bg-slate-950/50' : ''">
       <!-- Topbar -->
-      <header class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur">
+      <header
+        class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur"
+        x-show="!aquaHomeOpen"
+        x-transition.opacity
+        x-cloak>
         <div class="w-full max-w-none px-4 py-4 flex flex-wrap items-center gap-3">
           <div class="w-10 h-10 rounded-2xl flex items-center justify-center glass ring-blue-soft md:hidden">
             <i class="fa-solid fa-layer-group text-sky-300"></i>
@@ -1108,9 +1151,9 @@ if (isset($_GET['action'])) {
               <span class="hidden sm:inline" x-text="aquaHomeOpen ? 'Cerrar home' : 'Home'"></span>
             </button>
 
-            <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="openModal('changePassword')">
-              <i class="fa-solid fa-key text-sky-300"></i>
-              <span class="hidden sm:inline">Cambiar clave</span>
+            <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="openModal('settings')">
+              <i class="fa-solid fa-gear text-sky-300"></i>
+              <span class="hidden sm:inline">Ajustes</span>
             </button>
 
             <button class="btn-danger rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="logout()">
@@ -1118,26 +1161,9 @@ if (isset($_GET['action'])) {
               <span class="hidden sm:inline">Salir</span>
             </button>
 
-            <button
-              class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-              @click="persist()"
-              :disabled="saving">
-              <i class="fa-solid" :class="saving ? 'fa-circle-notch fa-spin text-sky-300' : 'fa-floppy-disk text-sky-300'"></i>
-              <span class="hidden sm:inline" x-text="saving ? 'Guardando…' : 'Guardar'"></span>
-            </button>
-            <div class="flex flex-col text-[11px] leading-tight text-slate-300">
-              <span class="font-semibold" x-text="saveMessage || (db.meta.savedAt ? 'Guardado' : 'Sin guardar')"></span>
-              <span class="text-slate-400" x-text="db.meta.savedAt ? new Date(db.meta.savedAt).toLocaleString('es-AR') : ''"></span>
-            </div>
-
             <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="openModal('dataTools')">
               <i class="fa-solid fa-database text-sky-300"></i>
               <span class="hidden sm:inline">Datos</span>
-            </button>
-
-            <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="exportAllExcel()">
-              <i class="fa-solid fa-file-excel text-sky-300"></i>
-              <span class="hidden sm:inline">Exportar Excel</span>
             </button>
 
             <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="showSearch = !showSearch">
@@ -1149,15 +1175,17 @@ if (isset($_GET['action'])) {
       </header>
 
       <!-- Main -->
-      <main class="flex-1 w-full max-w-none px-4 py-6 pb-24 md:pb-6">
+      <main
+        class="flex-1 w-full max-w-none"
+        :class="aquaHomeOpen ? 'px-3 md:px-6 pb-6 md:pb-8 pt-4 md:pt-6' : 'px-4 py-6 pb-24 md:pb-6'">
 
         <!-- OS-like Home -->
         <section
           x-show="aquaHomeOpen"
           x-transition
           x-cloak
-          class="mb-6">
-          <div class="glass-strong rounded-3xl p-6 ring-blue-soft relative overflow-hidden">
+          class="mb-6 min-h-[75vh] flex">
+          <div class="glass-strong rounded-3xl p-6 ring-blue-soft relative overflow-hidden w-full">
             <div class="absolute inset-0 pointer-events-none opacity-70" style="background: radial-gradient(circle at 20% 20%, rgba(59,130,246,.28), transparent 40%), radial-gradient(circle at 80% 10%, rgba(94,234,212,.18), transparent 36%), linear-gradient(120deg, rgba(15,23,42,.35), rgba(15,23,42,.1));"></div>
             <div class="relative z-10">
               <div class="flex flex-wrap items-start gap-4 justify-between">
@@ -1169,10 +1197,28 @@ if (isset($_GET['action'])) {
                   </h2>
                   <p class="text-sm text-slate-200/90">Navegá como si fuera un launcher de sistema operativo.</p>
                 </div>
-                <div class="text-right">
-                  <div class="text-4xl font-black text-sky-100 drop-shadow-sm" x-text="aquaClockTime"></div>
-                  <div class="text-sm text-slate-200" x-text="aquaClockDate"></div>
-                </div>
+              <div class="text-right">
+                <div class="text-4xl font-black text-sky-100 drop-shadow-sm" x-text="aquaClockTime"></div>
+                <div class="text-sm text-slate-200" x-text="aquaClockDate"></div>
+              </div>
+            </div>
+
+              <div class="flex flex-wrap gap-2 mt-4">
+                <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="openModal('settings')">
+                  <i class="fa-solid fa-gear text-sky-300"></i>
+                  <span>Ajustes</span>
+                </button>
+                <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="openModal('dataTools')">
+                  <i class="fa-solid fa-database text-sky-300"></i>
+                  <span>Datos</span>
+                </button>
+                <button
+                  class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  :disabled="aquaBackgroundLoading"
+                  @click="changeBackdrop()">
+                  <i class="fa-solid" :class="aquaBackgroundLoading ? 'fa-circle-notch fa-spin text-sky-300' : 'fa-image text-sky-300'"></i>
+                  <span x-text="aquaBackgroundLoading ? 'Cambiando fondo…' : 'Cambiar fondo'"></span>
+                </button>
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mt-6">
@@ -1236,9 +1282,42 @@ if (isset($_GET['action'])) {
                   <p class="mt-2 text-sm text-slate-300">Apuntes, ideas y pendientes.</p>
                 </button>
               </div>
+
+              <div class="mt-6 glass rounded-2xl p-4 border border-white/10">
+                <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+                  <div>
+                    <p class="text-xs uppercase tracking-[0.2em] text-sky-200/80">Menú rápido</p>
+                    <h3 class="text-lg font-extrabold">Accesos del panel</h3>
+                    <p class="text-sm text-slate-300">La misma navegación del sidebar, en un grid accesible.</p>
+                  </div>
+                  <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="aquaHomeOpen = false">
+                    <i class="fa-solid fa-arrow-right text-sky-300"></i>
+                    <span>Ir al panel</span>
+                  </button>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+                  <template x-for="t in tabs" :key="'home-menu-' + t.key">
+                    <button
+                      class="tile rounded-2xl p-3 text-left hover:border-sky-400/60 hover:shadow-lg transition border border-white/10"
+                      @click="activeTab = t.key; aquaHomeOpen = false">
+                      <div class="flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-xl glass flex items-center justify-center">
+                          <i class="fa-solid text-lg text-sky-200" :class="t.icon"></i>
+                        </span>
+                        <div class="text-left">
+                          <div class="font-semibold" x-text="t.label"></div>
+                          <div class="text-xs text-slate-400">Abrir sección</div>
+                        </div>
+                      </div>
+                    </button>
+                  </template>
+                </div>
+              </div>
             </div>
           </div>
         </section>
+
+        <section x-show="!aquaHomeOpen" x-transition.opacity>
 
         <!-- Controls -->
         <section
@@ -2776,12 +2855,16 @@ if (isset($_GET['action'])) {
         </div>
       </div>
     </section>
+        </section>
       </main>
     </div>
   </div>
 
   <!-- Mobile footer nav -->
-  <footer class="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-slate-950/90 backdrop-blur">
+  <footer
+    class="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-slate-950/90 backdrop-blur"
+    x-show="!aquaHomeOpen"
+    x-transition.opacity>
     <div class="flex gap-2 px-3 py-2 overflow-x-auto scrollbar snap-x snap-mandatory">
       <template x-for="t in tabs" :key="'mobile-' + t.key">
         <button
@@ -3464,6 +3547,60 @@ if (isset($_GET['action'])) {
           </div>
         </div>
 
+        <!-- Settings -->
+        <div x-show="modal.view==='settings'">
+          <div class="space-y-3">
+            <div class="glass rounded-2xl p-4 border border-white/10">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div class="font-extrabold">Fondo del escritorio</div>
+                  <div class="text-sm text-slate-300">Imagen de Unsplash de naturaleza. Se mantiene hasta que la cambies.</div>
+                  <div class="text-xs text-slate-400 mt-2" x-text="aquaBackgroundUrl ? 'Fondo actual guardado' : 'Fondo generado automáticamente'"></div>
+                </div>
+                <div class="w-full md:w-48 h-28 rounded-xl overflow-hidden border border-white/10 bg-white/5">
+                  <div class="w-full h-full" :style="{ backgroundImage: aquaBackdrop, backgroundSize: 'cover', backgroundPosition: 'center' }"></div>
+                </div>
+              </div>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <button
+                  class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  :disabled="aquaBackgroundLoading"
+                  @click="changeBackdrop()">
+                  <i class="fa-solid" :class="aquaBackgroundLoading ? 'fa-circle-notch fa-spin text-sky-300' : 'fa-image text-sky-300'"></i>
+                  <span x-text="aquaBackgroundLoading ? 'Cambiando fondo…' : 'Cambiar fondo'"></span>
+                </button>
+              </div>
+            </div>
+
+            <div class="glass rounded-2xl p-4 border border-white/10">
+              <div class="font-extrabold mb-3">Cambiar contraseña</div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs text-slate-300">Contraseña actual</label>
+                  <input class="input rounded-xl px-3 py-2 w-full" type="password" x-model="passwordForm.current" placeholder="Actual" />
+                </div>
+                <div>
+                  <label class="text-xs text-slate-300">Nueva contraseña</label>
+                  <input class="input rounded-xl px-3 py-2 w-full" type="password" x-model="passwordForm.next" placeholder="Nueva" />
+                </div>
+                <div class="md:col-span-2">
+                  <label class="text-xs text-slate-300">Repetir nueva contraseña</label>
+                  <input class="input rounded-xl px-3 py-2 w-full" type="password" x-model="passwordForm.confirm" placeholder="Repetir" />
+                </div>
+              </div>
+              <p class="text-sm mt-2" :class="passwordFeedback ? (passwordFeedback.toLowerCase().includes('actualizada') ? 'text-emerald-200' : 'text-red-300') : 'text-slate-400'">
+                <span x-text="passwordFeedback || 'Mínimo 6 caracteres. Solo vos podés cambiar tu contraseña.'"></span>
+              </p>
+              <div class="flex gap-2 pt-2">
+                <button class="btn rounded-xl px-3 py-2 text-sm" @click="submitPasswordChange()">
+                  <i class="fa-solid fa-key text-sky-300 mr-2"></i>Guardar nueva contraseña
+                </button>
+                <button class="btn rounded-xl px-3 py-2 text-sm" @click="closeModal()">Listo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Change password -->
         <div x-show="modal.view==='changePassword'">
           <div class="space-y-3">
@@ -3495,6 +3632,30 @@ if (isset($_GET['action'])) {
         <div x-show="modal.view==='dataTools'">
           <div class="space-y-3">
             <div class="glass rounded-2xl p-4 border border-white/10">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div class="font-extrabold">Guardar datos</div>
+                  <div class="text-sm text-slate-300">Persistí tu información en la base o en backup local.</div>
+                  <div class="text-xs text-slate-400 mt-1" x-text="db.meta.savedAt ? 'Último guardado: ' + new Date(db.meta.savedAt).toLocaleString('es-AR') : 'Sin guardar todavía.'"></div>
+                  <div class="text-xs text-sky-200 font-semibold mt-1" x-text="saveMessage" x-show="saveMessage"></div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    @click="persist()"
+                    :disabled="saving">
+                    <i class="fa-solid" :class="saving ? 'fa-circle-notch fa-spin text-sky-300' : 'fa-floppy-disk text-sky-300'"></i>
+                    <span x-text="saving ? 'Guardando…' : 'Guardar'"></span>
+                  </button>
+                  <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="exportAllExcel()">
+                    <i class="fa-solid fa-file-excel text-sky-300"></i>
+                    <span>Exportar Excel</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass rounded-2xl p-4 border border-white/10">
               <div class="flex items-center justify-between">
                 <div>
                   <div class="font-extrabold">Exportar (backup)</div>
@@ -3509,8 +3670,8 @@ if (isset($_GET['action'])) {
             <div class="glass rounded-2xl p-4 border border-white/10">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <div class="font-extrabold">Exportar Excel</div>
-                  <div class="text-sm text-slate-300">Descargá un Excel para editar o migrar.</div>
+                  <div class="font-extrabold">Importar / Exportar Excel</div>
+                  <div class="text-sm text-slate-300">Descargá el Excel o cargá uno existente.</div>
                 </div>
                 <button class="btn rounded-xl px-3 py-2 text-sm" @click="exportAllExcel()">
                   <i class="fa-solid fa-file-excel text-sky-300 mr-2"></i>Exportar Excel

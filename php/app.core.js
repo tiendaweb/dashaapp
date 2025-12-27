@@ -180,8 +180,9 @@ window.AAPPCore = {
       resellerForm: (this.forms.reseller.id ? 'Editar plan revendedor' : 'Nuevo plan revendedor'),
       partnerForm: (this.forms.partner.id ? 'Editar partner' : 'Nuevo partner'),
       resellerHtml: 'Página de precios revendedor',
-      dataTools: 'Datos • Exportar / Importar',
-      changePassword: 'Cambiar contraseña'
+      dataTools: 'Datos • Guardar / Exportar / Importar',
+      changePassword: 'Cambiar contraseña',
+      settings: 'Ajustes y personalización'
     };
     this.modal.title = titles[view] || 'Formulario';
 
