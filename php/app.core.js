@@ -100,7 +100,9 @@ window.AAPPCore = {
       return;
     }
     if (this.apiUnavailable) {
-      console.warn('API no disponible, no se guarda el estado todavía.');
+      console.warn('API no disponible, se guarda localmente.');
+      this.saveLocalBackup(this.db);
+      this.saveMessage = this.storageBlocked ? 'Sin guardado local.' : 'Guardado local.';
       return;
     }
     if (this.saving) return;
@@ -114,8 +116,11 @@ window.AAPPCore = {
     } catch (err) {
       console.error('No se pudo persistir en la base de datos.', err);
       this.apiUnavailable = true;
-      this.saveMessage = 'Error al guardar.';
-      alert('No se pudo guardar en la base de datos MySQL. Verificá la conexión.');
+      const savedLocal = this.saveLocalBackup(this.db);
+      this.saveMessage = savedLocal ? 'API caída: guardado local.' : 'Error al guardar.';
+      if (!savedLocal) {
+        alert('No se pudo guardar en la base de datos MySQL ni en localStorage.');
+      }
     } finally {
       this.saving = false;
       setTimeout(() => {
@@ -125,11 +130,26 @@ window.AAPPCore = {
   },
 
   async loadRemoteState() {
-    const remote = await this.fetchStateFromServer();
-    if (remote) {
-      this.db = this.normalizeDB(remote);
-    } else {
-      this.seedMinimal();
+    try {
+      const remote = await this.fetchStateFromServer();
+      if (remote) {
+        this.db = this.normalizeDB(remote);
+        this.apiUnavailable = false;
+        this.saveLocalBackup(this.db);
+      } else {
+        this.seedMinimal();
+      }
+    } catch (e) {
+      console.warn('Fallo al cargar remoto, probando backup local.', e);
+      this.apiUnavailable = true;
+      const local = this.loadLocalBackup();
+      if (local) {
+        this.db = this.normalizeDB(local);
+        this.saveMessage = 'Modo offline (backup local).';
+      } else {
+        this.seedMinimal({ persist: false });
+        this.saveMessage = 'Sin datos, usando seed.';
+      }
     }
     if (!this.forms.pos.date) this.forms.pos.date = this.todayISO();
     if (!this.forms.posCampaign.date) this.forms.posCampaign.date = this.todayISO();

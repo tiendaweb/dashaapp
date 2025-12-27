@@ -6,6 +6,7 @@ window.AAPPApp = function AAPPApp() {
     ...window.AAPPFilters,
     ...window.AAPPRelations,
     ...window.AAPPReports,
+    ...window.AAPPBulk,
     ...window.AAPPCrud,
     ...window.AAPPSeeds
   };
