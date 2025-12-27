@@ -138,6 +138,7 @@ window.AAPPUtils = {
       }
     } catch (e) {
       console.warn('No se pudo verificar la sesión.', e);
+      this.apiUnavailable = true;
     }
     this.isAuthenticated = false;
     this.authUser = null;
