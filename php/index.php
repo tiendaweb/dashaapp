@@ -46,12 +46,8 @@ function default_state(): array
     ];
 }
 
-function run_sql_file(PDO $pdo, string $path): void
+function run_sql_string(PDO $pdo, string $sql, string $context = 'SQL embebido'): void
 {
-    if (!is_readable($path)) {
-        return;
-    }
-    $sql = file_get_contents($path);
     $chunks = array_filter(array_map('trim', preg_split('/;\s*(?:\r?\n|$)/', $sql)));
     foreach ($chunks as $statement) {
         if ($statement === '') {
@@ -60,9 +56,18 @@ function run_sql_file(PDO $pdo, string $path): void
         try {
             $pdo->exec($statement);
         } catch (Throwable $e) {
-            error_log('Error ejecutando ' . $path . ': ' . $e->getMessage());
+            error_log('Error ejecutando ' . $context . ': ' . $e->getMessage());
         }
     }
+}
+
+function run_sql_file(PDO $pdo, string $path): void
+{
+    if (!is_readable($path)) {
+        return;
+    }
+    $sql = file_get_contents($path);
+    run_sql_string($pdo, $sql, $path);
 }
 
 function ensure_schema(PDO $pdo): void
@@ -71,13 +76,171 @@ function ensure_schema(PDO $pdo): void
     if ($ensured) {
         return;
     }
-    $sqlDir = realpath(__DIR__ . '/../sql');
-    if ($sqlDir === false) {
-        throw new RuntimeException('Directorio sql no encontrado.');
+
+    $sqlDir = null;
+    foreach ([__DIR__ . '/../sql', __DIR__ . '/sql'] as $candidate) {
+        if (is_dir($candidate)) {
+            $sqlDir = $candidate;
+            break;
+        }
     }
-    foreach (['database.sql', 'auth.sql'] as $file) {
-        $fullPath = $sqlDir . DIRECTORY_SEPARATOR . $file;
-        run_sql_file($pdo, $fullPath);
+
+    if ($sqlDir) {
+        foreach (['database.sql', 'auth.sql'] as $file) {
+            $fullPath = $sqlDir . DIRECTORY_SEPARATOR . $file;
+            run_sql_file($pdo, $fullPath);
+        }
+    } else {
+        $embeddedDatabaseSchema = <<<SQL
+CREATE TABLE IF NOT EXISTS app_state (
+  id TINYINT UNSIGNED PRIMARY KEY,
+  data JSON NOT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS saas (
+  id VARCHAR(64) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  url VARCHAR(255) NOT NULL,
+  logo_url VARCHAR(255) DEFAULT NULL,
+  register_url VARCHAR(255) DEFAULT NULL,
+  login_url VARCHAR(255) DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS plans (
+  id VARCHAR(64) PRIMARY KEY,
+  saas_id VARCHAR(64) NOT NULL,
+  frequency VARCHAR(50) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  price DECIMAL(12,2) NOT NULL DEFAULT 0,
+  features JSON DEFAULT NULL,
+  variable_features JSON DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (saas_id) REFERENCES saas(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS extras (
+  id VARCHAR(64) PRIMARY KEY,
+  saas_id VARCHAR(64) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  price DECIMAL(12,2) NOT NULL DEFAULT 0,
+  frequency VARCHAR(50) NOT NULL,
+  features JSON DEFAULT NULL,
+  variable_features JSON DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (saas_id) REFERENCES saas(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS campaigns (
+  id VARCHAR(64) PRIMARY KEY,
+  saas_id VARCHAR(64) NOT NULL,
+  ad_name VARCHAR(255) NOT NULL,
+  date DATE NOT NULL,
+  daily_spend DECIMAL(12,2) NOT NULL DEFAULT 0,
+  total_spend DECIMAL(12,2) NOT NULL DEFAULT 0,
+  reach INT DEFAULT 0,
+  views INT DEFAULT 0,
+  cost_per_conversation DECIMAL(12,2) DEFAULT 0,
+  notes TEXT,
+  FOREIGN KEY (saas_id) REFERENCES saas(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS partners (
+  id VARCHAR(64) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  company VARCHAR(255) DEFAULT NULL,
+  email VARCHAR(255) DEFAULT NULL,
+  phone VARCHAR(50) DEFAULT NULL,
+  commission DECIMAL(5,2) DEFAULT 0,
+  notes TEXT
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS clients (
+  id VARCHAR(64) PRIMARY KEY,
+  saas_id VARCHAR(64) NOT NULL,
+  plan_id VARCHAR(64) DEFAULT NULL,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) DEFAULT NULL,
+  password VARCHAR(255) DEFAULT NULL,
+  extra_ids JSON DEFAULT NULL,
+  date DATE DEFAULT NULL,
+  notes TEXT,
+  links TEXT,
+  FOREIGN KEY (saas_id) REFERENCES saas(id) ON DELETE CASCADE,
+  FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS domains (
+  id VARCHAR(64) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  saas_id VARCHAR(64) NOT NULL,
+  client_id VARCHAR(64) DEFAULT NULL,
+  provider VARCHAR(255) DEFAULT NULL,
+  status VARCHAR(50) DEFAULT 'Activo',
+  notes TEXT,
+  FOREIGN KEY (saas_id) REFERENCES saas(id) ON DELETE CASCADE,
+  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS resellers (
+  id VARCHAR(64) PRIMARY KEY,
+  saas_id VARCHAR(64) NOT NULL,
+  source_type ENUM('plan','extra') NOT NULL,
+  source_id VARCHAR(64) NOT NULL,
+  cost_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+  sale_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+  delivery_time VARCHAR(255) DEFAULT NULL,
+  requirements TEXT,
+  FOREIGN KEY (saas_id) REFERENCES saas(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS pos_sales (
+  id VARCHAR(64) PRIMARY KEY,
+  buyer_name VARCHAR(255) NOT NULL,
+  buyer_email VARCHAR(255) DEFAULT NULL,
+  saas_id VARCHAR(64) NOT NULL,
+  plan_id VARCHAR(64) DEFAULT NULL,
+  extra_ids JSON DEFAULT NULL,
+  date DATE NOT NULL,
+  payment_method VARCHAR(50) NOT NULL,
+  amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+  notes TEXT,
+  FOREIGN KEY (saas_id) REFERENCES saas(id) ON DELETE CASCADE,
+  FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS expenses (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+  date DATE NOT NULL
+) ENGINE=InnoDB;
+SQL;
+
+        $embeddedAuthSchema = <<<SQL
+CREATE TABLE IF NOT EXISTS users (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  name VARCHAR(255) DEFAULT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  role VARCHAR(50) DEFAULT 'user',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO users (email, name, password_hash, role)
+VALUES
+  ('admin@aapp.uno', 'Administrador', '$2y$12$18.5ETI6Zx7Lfvj58tlGh.AsRLS5LBTPWBo2q9BK0qL/Ni7Zb4SR6', 'admin'),
+  ('noelia@aapp.uno', 'Noelia', '$2y$12$f449llRcpKKYWtPELbQyu.fHye5ei6pwT5DcpCNMZ26VHJCulD.u.', 'user')
+ON DUPLICATE KEY UPDATE
+  name = VALUES(name),
+  role = VALUES(role);
+SQL;
+
+        run_sql_string($pdo, $embeddedDatabaseSchema, 'esquema embebido de base de datos');
+        run_sql_string($pdo, $embeddedAuthSchema, 'esquema embebido de autenticación');
     }
     ensure_state_table($pdo);
     $ensured = true;
@@ -413,15 +576,14 @@ function persist_database_state(PDO $pdo, array $data): void
         $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
         $pdo->commit();
 
-        $metaPayload = [
-            'meta' => [
-                'version' => isset($state['meta']['version']) ? (int) $state['meta']['version'] : 1,
-                'savedAt' => $state['meta']['savedAt'] ?? date(DATE_ATOM),
-            ],
-        ];
+        $appStatePayload = $state;
+        $appStatePayload['meta']['version'] = isset($state['meta']['version'])
+            ? (int) $state['meta']['version']
+            : 1;
+        $appStatePayload['meta']['savedAt'] = $state['meta']['savedAt'] ?? date(DATE_ATOM);
         $stmt = $pdo->prepare('INSERT INTO app_state (id, data) VALUES (1, :data)
           ON DUPLICATE KEY UPDATE data = VALUES(data), updated_at = CURRENT_TIMESTAMP');
-        $stmt->execute([':data' => json_encode($metaPayload, JSON_UNESCAPED_UNICODE)]);
+        $stmt->execute([':data' => json_encode($appStatePayload, JSON_UNESCAPED_UNICODE)]);
     } catch (Throwable $e) {
         $pdo->rollBack();
         $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
