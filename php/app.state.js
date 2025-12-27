@@ -10,6 +10,8 @@ window.AAPPState = () => ({
   authError: '',
   authUser: null,
   passwordFeedback: '',
+  saving: false,
+  saveMessage: '',
 
   tabs: [
     { key: 'dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },

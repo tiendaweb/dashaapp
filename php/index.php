@@ -934,10 +934,17 @@ if (isset($_GET['action'])) {
               <span class="hidden sm:inline">Salir</span>
             </button>
 
-            <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="toggleDark()">
-              <i class="fa-solid" :class="isDark ? 'fa-moon text-sky-300' : 'fa-sun text-yellow-300'"></i>
-              <span class="hidden sm:inline" x-text="isDark ? 'Dark' : 'Light'"></span>
+            <button
+              class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              @click="persist()"
+              :disabled="saving">
+              <i class="fa-solid" :class="saving ? 'fa-circle-notch fa-spin text-sky-300' : 'fa-floppy-disk text-sky-300'"></i>
+              <span class="hidden sm:inline" x-text="saving ? 'Guardando…' : 'Guardar'"></span>
             </button>
+            <div class="flex flex-col text-[11px] leading-tight text-slate-300">
+              <span class="font-semibold" x-text="saveMessage || (db.meta.savedAt ? 'Guardado' : 'Sin guardar')"></span>
+              <span class="text-slate-400" x-text="db.meta.savedAt ? new Date(db.meta.savedAt).toLocaleString('es-AR') : ''"></span>
+            </div>
 
             <button class="btn rounded-xl px-3 py-2 text-sm flex items-center gap-2" @click="openModal('dataTools')">
               <i class="fa-solid fa-database text-sky-300"></i>

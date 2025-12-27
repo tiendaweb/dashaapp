@@ -71,7 +71,7 @@ window.AAPPCore = {
     };
   },
 
-  persist() {
+  async persist() {
     if (!this.isAuthenticated) {
       console.warn('No autenticado. Iniciá sesión para guardar.');
       return;
@@ -80,12 +80,25 @@ window.AAPPCore = {
       console.warn('API no disponible, no se guarda el estado todavía.');
       return;
     }
+    if (this.saving) return;
+
+    this.saving = true;
+    this.saveMessage = 'Guardando…';
     this.db.meta.savedAt = new Date().toISOString();
-    this.saveStateToServer(this.db).catch((err) => {
+    try {
+      await this.saveStateToServer(this.db);
+      this.saveMessage = 'Datos guardados.';
+    } catch (err) {
       console.error('No se pudo persistir en la base de datos.', err);
       this.apiUnavailable = true;
+      this.saveMessage = 'Error al guardar.';
       alert('No se pudo guardar en la base de datos MySQL. Verificá la conexión.');
-    });
+    } finally {
+      this.saving = false;
+      setTimeout(() => {
+        this.saveMessage = '';
+      }, 2000);
+    }
   },
 
   async loadRemoteState() {
