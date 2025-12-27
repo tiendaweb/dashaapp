@@ -83,6 +83,9 @@ window.AAPPState = () => ({
       clientId: '',
       provider: '',
       status: 'Activo',
+      delegated: false,
+      pointed: false,
+      captcha: false,
       notes: ''
     },
     campaign: { id: '', saasId: '', adName: '', date: '', dailySpend: 0, totalSpend: 0, reach: 0, views: 0, costPerConversation: 0, notes: '' },

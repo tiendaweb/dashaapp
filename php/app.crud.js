@@ -34,7 +34,18 @@ window.AAPPCrud = {
 
   // CRUD: Domains
   resetDomainForm() {
-    this.forms.domain = { id: '', name: '', saasId: '', clientId: '', provider: '', status: 'Activo', notes: '' };
+    this.forms.domain = {
+      id: '',
+      name: '',
+      saasId: '',
+      clientId: '',
+      provider: '',
+      status: 'Activo',
+      delegated: false,
+      pointed: false,
+      captcha: false,
+      notes: ''
+    };
   },
   editDomain(id) {
     const d = this.db.domains.find(x => x.id === id);
@@ -49,7 +60,10 @@ window.AAPPCrud = {
     const payload = {
       ...f,
       saasId: f.saasId || '',
-      clientId: f.clientId || ''
+      clientId: f.clientId || '',
+      delegated: Boolean(f.delegated),
+      pointed: Boolean(f.pointed),
+      captcha: Boolean(f.captcha)
     };
 
     if (f.id) {

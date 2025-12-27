@@ -23,7 +23,12 @@ window.AAPPFilters = {
 
   filteredDomains() {
     const list = this.db.domains.filter((d) => {
-      const matchesQ = this.matchQuery(d.name) || this.matchQuery(d.provider) || this.matchQuery(d.status) || this.matchQuery(d.notes) || this.matchQuery(this.saasName(d.saasId)) || this.matchQuery(this.clientName(d.clientId));
+      const flagText = [
+        d.delegated ? 'delegado' : '',
+        d.pointed ? 'apuntado' : '',
+        d.captcha ? 'captcha' : ''
+      ].join(' ');
+      const matchesQ = this.matchQuery(d.name) || this.matchQuery(d.provider) || this.matchQuery(d.status) || this.matchQuery(d.notes) || this.matchQuery(this.saasName(d.saasId)) || this.matchQuery(this.clientName(d.clientId)) || this.matchQuery(flagText);
       if (!matchesQ) return false;
       if (this.domainFilterSaasId && d.saasId !== this.domainFilterSaasId) return false;
       return true;

@@ -3,7 +3,7 @@ window.AAPPBulk = {
   bulkDefaults(area) {
     const defaults = {
       saas: { id: '', name: '', url: '', logoUrl: '', registerUrl: '', loginUrl: '' },
-      domains: { id: '', name: '', saasId: '', clientId: '', provider: '', status: 'Activo', notes: '' },
+      domains: { id: '', name: '', saasId: '', clientId: '', provider: '', status: 'Activo', delegated: false, pointed: false, captcha: false, notes: '' },
       plans: { id: '', saasId: '', frequency: 'Por mes', title: '', description: '', price: 0, features: [], variableFeatures: [] },
       campaigns: { id: '', saasId: '', adName: '', date: '', dailySpend: 0, totalSpend: 0, reach: 0, views: 0, costPerConversation: 0, notes: '' },
       extras: { id: '', saasId: '', name: '', price: 0, frequency: 'Única vez', features: [], variableFeatures: [] },
@@ -25,6 +25,10 @@ window.AAPPBulk = {
       payload.price = Number(payload.price || 0);
       payload.features = typeof this.cleanFeatures === 'function' ? this.cleanFeatures(payload.features) : (payload.features || []);
       payload.variableFeatures = typeof this.cleanVariableFeatures === 'function' ? this.cleanVariableFeatures(payload.variableFeatures) : (payload.variableFeatures || []);
+    } else if (area === 'domains') {
+      payload.delegated = Boolean(payload.delegated);
+      payload.pointed = Boolean(payload.pointed);
+      payload.captcha = Boolean(payload.captcha);
     } else if (area === 'extras') {
       payload.price = Number(payload.price || 0);
       payload.features = typeof this.cleanFeatures === 'function' ? this.cleanFeatures(payload.features) : (payload.features || []);
