@@ -24,6 +24,9 @@ window.AAPPCore = {
 
     if (!this.forms.pos.date) this.forms.pos.date = this.todayISO();
     if (!this.forms.posCampaign.date) this.forms.posCampaign.date = this.todayISO();
+    if (this.applyTaskPreset && (!this.forms.task.checks || this.forms.task.checks.length === 0)) {
+      this.applyTaskPreset();
+    }
   },
 
   normalizeDB(input) {
@@ -66,6 +69,23 @@ window.AAPPCore = {
       clients: safe(input.clients),
       posSales: safe(input.posSales),
       expenses: safe(input.expenses),
+      tasks: safe(input.tasks).map((t) => ({
+        id: t.id || this.uid(),
+        title: t.title || '',
+        saasId: t.saasId || '',
+        status: t.status || 'todo',
+        notes: t.notes || '',
+        checks: (Array.isArray(t.checks) ? t.checks : []).map((chk, idx) => ({
+          label: String(chk?.label || `Check ${idx + 1}`).trim(),
+          done: Boolean(chk?.done)
+        })).filter(chk => chk.label)
+      })),
+      notes: safe(input.notes).map((n) => ({
+        id: n.id || this.uid(),
+        saasId: n.saasId || '',
+        title: n.title || '',
+        content: n.content || ''
+      })),
       meta: input.meta || { version: 1, savedAt: null }
     };
   },

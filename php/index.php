@@ -42,6 +42,8 @@ function default_state(): array
         'clients' => [],
         'posSales' => [],
         'expenses' => [],
+        'tasks' => [],
+        'notes' => [],
         'meta' => ['version' => 1, 'savedAt' => null],
     ];
 }
@@ -216,6 +218,26 @@ CREATE TABLE IF NOT EXISTS expenses (
   name VARCHAR(255) NOT NULL,
   amount DECIMAL(12,2) NOT NULL DEFAULT 0,
   date DATE NOT NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS tasks (
+  id VARCHAR(64) PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  saas_id VARCHAR(64) DEFAULT NULL,
+  status ENUM('todo','doing','done') NOT NULL DEFAULT 'todo',
+  notes TEXT,
+  checks JSON DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (saas_id) REFERENCES saas(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS notes (
+  id VARCHAR(64) PRIMARY KEY,
+  saas_id VARCHAR(64) DEFAULT NULL,
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (saas_id) REFERENCES saas(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 SQL;
 
@@ -394,6 +416,47 @@ function load_database_state(PDO $pdo): array
         $pdo->query('SELECT * FROM expenses ORDER BY date DESC, id DESC')->fetchAll()
     );
 
+    $state['tasks'] = array_map(
+        function ($row) {
+            $checksRaw = decode_json_field($row['checks'] ?? []);
+            $checks = [];
+            foreach ($checksRaw as $idx => $chk) {
+                $label = trim((string) ($chk['label'] ?? ''));
+                if ($label === '') {
+                    $label = 'Check ' . ($idx + 1);
+                }
+                $label = trim($label);
+                if ($label === '') {
+                    continue;
+                }
+                $checks[] = [
+                    'label' => $label,
+                    'done' => !empty($chk['done']),
+                ];
+            }
+
+            return [
+                'id' => $row['id'],
+                'title' => $row['title'] ?? '',
+                'saasId' => $row['saas_id'] ?? '',
+                'status' => $row['status'] ?? 'todo',
+                'notes' => $row['notes'] ?? '',
+                'checks' => $checks,
+            ];
+        },
+        $pdo->query('SELECT * FROM tasks ORDER BY created_at DESC')->fetchAll()
+    );
+
+    $state['notes'] = array_map(
+        fn($row) => [
+            'id' => $row['id'],
+            'saasId' => $row['saas_id'] ?? '',
+            'title' => $row['title'] ?? '',
+            'content' => $row['content'] ?? '',
+        ],
+        $pdo->query('SELECT * FROM notes ORDER BY created_at DESC')->fetchAll()
+    );
+
     $metaRow = $pdo->query('SELECT data, updated_at FROM app_state WHERE id = 1 LIMIT 1')->fetch();
     if ($metaRow) {
         $metaData = json_decode($metaRow['data'] ?? 'null', true);
@@ -427,7 +490,9 @@ function persist_database_state(PDO $pdo, array $data): void
         'extras',
         'plans',
         'saas',
-        'expenses'
+        'expenses',
+        'tasks',
+        'notes'
     ];
 
     try {
@@ -570,6 +635,28 @@ function persist_database_state(PDO $pdo, array $data): void
                 ':name' => $row['name'] ?? '',
                 ':amount' => (float) ($row['amount'] ?? 0),
                 ':date' => $row['date'] ?? null,
+            ]);
+        }
+
+        $taskStmt = $pdo->prepare('INSERT INTO tasks (id, title, saas_id, status, notes, checks) VALUES (:id, :title, :saas_id, :status, :notes, :checks)');
+        foreach ($state['tasks'] as $row) {
+            $taskStmt->execute([
+                ':id' => $row['id'],
+                ':title' => $row['title'] ?? '',
+                ':saas_id' => $row['saasId'] ?? null,
+                ':status' => $row['status'] ?? 'todo',
+                ':notes' => $row['notes'] ?? '',
+                ':checks' => json_encode($row['checks'] ?? [], JSON_UNESCAPED_UNICODE),
+            ]);
+        }
+
+        $noteStmt = $pdo->prepare('INSERT INTO notes (id, saas_id, title, content) VALUES (:id, :saas_id, :title, :content)');
+        foreach ($state['notes'] as $row) {
+            $noteStmt->execute([
+                ':id' => $row['id'],
+                ':saas_id' => $row['saasId'] ?? null,
+                ':title' => $row['title'] ?? '',
+                ':content' => $row['content'] ?? ''
             ]);
         }
 
@@ -2111,6 +2198,228 @@ if (isset($_GET['action'])) {
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasks -->
+      <div x-show="activeTab==='tasks'" x-transition.opacity>
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <h2 class="text-lg font-extrabold">Tareas</h2>
+          <span class="badge text-xs px-2 py-1 rounded-lg">To-do • Estados • Kanban</span>
+          <div class="ml-auto flex items-center gap-2">
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetTaskForm()">
+              <i class="fa-solid fa-rotate text-sky-300 mr-2"></i>Limpiar
+            </button>
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl p-4 ring-blue-soft mb-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Título de la tarea</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.task.title" placeholder="Ej: Enviar propuesta / Revisar campaña" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Empresa (opcional)</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.task.saasId">
+                <option value="">General</option>
+                <template x-for="s in db.saas" :key="'task-saas-'+s.id">
+                  <option :value="s.id" x-text="s.name"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Estado</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.task.status">
+                <option value="todo">Por hacer</option>
+                <option value="doing">En progreso</option>
+                <option value="done">Listo</option>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Notas (opcional)</label>
+              <textarea class="input rounded-xl px-3 py-2 w-full min-h-[70px]" x-model="forms.task.notes" placeholder="Contexto, links, responsables…"></textarea>
+            </div>
+          </div>
+
+          <div class="mt-4 space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs text-slate-300">Checklist rápido</span>
+              <select class="input rounded-xl px-3 py-2 text-sm" x-model="taskFormPreset" @change="applyTaskPreset()">
+                <template x-for="preset in taskTemplates" :key="'preset-'+preset.key">
+                  <option :value="preset.key" x-text="preset.label"></option>
+                </template>
+                <option value="custom">Personalizado</option>
+              </select>
+              <button class="btn rounded-xl px-3 py-2 text-xs" @click="addTaskCheckRow()">
+                <i class="fa-solid fa-plus text-sky-300 mr-1"></i>Check
+              </button>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <template x-for="(chk, idx) in forms.task.checks" :key="'task-check-'+idx">
+                <div class="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/5">
+                  <input type="checkbox" class="accent-sky-400" :checked="chk.done" @change="forms.task.checks[idx].done = $event.target.checked" />
+                  <input class="bg-transparent text-sm outline-none" x-model="forms.task.checks[idx].label" />
+                  <button class="text-xs text-red-300 hover:text-red-200" @click="removeTaskCheckRow(idx)">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+              </template>
+              <div class="text-xs text-slate-400" x-show="forms.task.checks.length===0">Sin checks, podés agregarlos o usar un preset.</div>
+            </div>
+          </div>
+
+          <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="text-xs text-slate-300">
+              Los checks son simples switches para seguir estados (brief, QA, entrega, etc.).
+            </div>
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="saveTask()">
+              <i class="fa-solid fa-floppy-disk text-sky-300 mr-2"></i>
+              <span x-text="forms.task.id ? 'Actualizar tarea' : 'Agregar tarea'"></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <template x-for="col in taskColumns" :key="'col-'+col.key">
+            <div class="glass rounded-2xl p-4 ring-blue-soft">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full" :class="col.dot"></span>
+                  <span class="font-extrabold" x-text="col.label"></span>
+                </div>
+                <span class="badge text-xs px-2 py-1 rounded-lg" x-text="tasksByStatus(col.key).length + ' tareas'"></span>
+              </div>
+
+              <div class="space-y-3">
+                <template x-for="task in tasksByStatus(col.key)" :key="'task-'+task.id">
+                  <div class="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <div class="font-semibold" x-text="task.title"></div>
+                        <div class="text-xs text-slate-400 mt-1">
+                          <span class="badge text-[11px] px-2 py-1 rounded-lg" x-text="task.saasId ? saasName(task.saasId) : 'General'"></span>
+                        </div>
+                      </div>
+                      <select class="input rounded-xl px-2 py-1 text-xs" :value="task.status" @change="updateTaskStatus(task.id, $event.target.value)">
+                        <option value="todo">Por hacer</option>
+                        <option value="doing">En progreso</option>
+                        <option value="done">Listo</option>
+                      </select>
+                    </div>
+
+                    <div class="mt-2 text-xs text-slate-300 flex items-center gap-2">
+                      <span class="badge text-[11px] px-2 py-1 rounded-lg">Checklist</span>
+                      <span x-text="taskProgress(task).done + '/' + taskProgress(task).total"></span>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                      <template x-for="(chk, cidx) in task.checks" :key="'task-'+task.id+'-chk-'+cidx">
+                        <label class="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-xs">
+                          <input type="checkbox" class="accent-sky-400" :checked="chk.done" @change="toggleTaskCheck(task.id, cidx, $event.target.checked)" />
+                          <span :class="chk.done ? 'line-through text-slate-400' : 'text-slate-200'" x-text="chk.label"></span>
+                        </label>
+                      </template>
+                      <div class="text-xs text-slate-500" x-show="(task.checks || []).length===0">Sin checks.</div>
+                    </div>
+
+                    <div class="mt-3 text-xs text-slate-300">
+                      <span class="text-slate-500">Notas:</span>
+                      <span class="text-slate-200" x-text="task.notes || 'Sin notas'"></span>
+                    </div>
+
+                    <div class="mt-3 flex items-center gap-2">
+                      <button class="btn rounded-xl px-3 py-2 text-xs" @click="editTask(task.id)">
+                        <i class="fa-solid fa-pen-to-square text-sky-300 mr-1"></i>Editar
+                      </button>
+                      <button class="btn-danger rounded-xl px-3 py-2 text-xs" @click="deleteTask(task.id)">
+                        <i class="fa-solid fa-trash text-red-300 mr-1"></i>Borrar
+                      </button>
+                    </div>
+                  </div>
+                </template>
+                <div class="text-xs text-slate-400" x-show="tasksByStatus(col.key).length===0">
+                  No hay tareas en esta columna todavía.
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Notas -->
+      <div x-show="activeTab==='notes'" x-transition.opacity>
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <h2 class="text-lg font-extrabold">Notas por empresa</h2>
+          <span class="badge text-xs px-2 py-1 rounded-lg">Recordatorios • Links • Copiar rápido</span>
+          <div class="ml-auto flex items-center gap-2">
+            <select class="input rounded-xl px-3 py-2 text-sm" x-model="noteFilterSaasId">
+              <option value="">Todas las empresas</option>
+              <template x-for="s in db.saas" :key="'note-filter-'+s.id">
+                <option :value="s.id" x-text="s.name"></option>
+              </template>
+            </select>
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetNoteForm()">
+              <i class="fa-solid fa-rotate text-sky-300 mr-2"></i>Limpiar
+            </button>
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl p-4 ring-blue-soft mb-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="text-xs text-slate-300">Empresa</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.note.saasId">
+                <option value="">General</option>
+                <template x-for="s in db.saas" :key="'note-saas-'+s.id">
+                  <option :value="s.id" x-text="s.name"></option>
+                </template>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Título</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.note.title" placeholder="Ej: Accesos, onboarding, reuniones…" />
+            </div>
+            <div class="md:col-span-3">
+              <label class="text-xs text-slate-300">Contenido</label>
+              <textarea class="input rounded-xl px-3 py-2 w-full min-h-[90px]" x-model="forms.note.content" placeholder="Texto libre, links, pasos a seguir…"></textarea>
+            </div>
+          </div>
+
+          <div class="mt-4 flex justify-between items-center gap-3">
+            <p class="text-xs text-slate-300">Guardá notas cortas y copiables por empresa o generales.</p>
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="saveNote()">
+              <i class="fa-solid fa-floppy-disk text-sky-300 mr-2"></i>
+              <span x-text="forms.note.id ? 'Actualizar nota' : 'Agregar nota'"></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <template x-for="n in filteredNotes()" :key="'note-'+n.id">
+            <div class="glass rounded-2xl p-4 ring-blue-soft flex flex-col gap-3">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="font-semibold" x-text="n.title"></div>
+                  <div class="text-xs text-slate-400" x-text="noteCompany(n)"></div>
+                </div>
+                <button class="btn rounded-xl px-3 py-2 text-xs" @click="copyNote(n.id)">
+                  <i class="fa-solid fa-copy text-sky-300 mr-1"></i>Copiar
+                </button>
+              </div>
+              <p class="text-sm text-slate-200 whitespace-pre-line flex-1" x-text="n.content"></p>
+              <div class="flex items-center gap-2">
+                <button class="btn rounded-xl px-3 py-2 text-xs" @click="editNote(n.id)">
+                  <i class="fa-solid fa-pen-to-square text-sky-300 mr-1"></i>Editar
+                </button>
+                <button class="btn-danger rounded-xl px-3 py-2 text-xs" @click="deleteNote(n.id)">
+                  <i class="fa-solid fa-trash text-red-300 mr-1"></i>Borrar
+                </button>
+              </div>
+            </div>
+          </template>
+          <div class="glass rounded-2xl p-4 ring-blue-soft text-sm text-slate-400" x-show="filteredNotes().length===0">
+            No hay notas guardadas con el filtro actual.
           </div>
         </div>
       </div>

@@ -14,6 +14,8 @@ window.AAPPSeeds = {
       clients: [],
       posSales: [],
       expenses: [],
+      tasks: [],
+      notes: [],
       meta: { version: 1, savedAt: null }
     };
     if (persist) this.persist();
@@ -37,6 +39,10 @@ window.AAPPSeeds = {
     const r3 = this.uid();
     const partner1 = this.uid();
     const sale1 = this.uid();
+    const task1 = this.uid();
+    const task2 = this.uid();
+    const note1 = this.uid();
+    const note2 = this.uid();
 
     this.db = {
       saas: [
@@ -146,6 +152,14 @@ window.AAPPSeeds = {
       ],
       expenses: [
         { name: 'Hosting / VPS', amount: 25000, date: this.todayISO() }
+      ],
+      tasks: [
+        { id: task1, title: 'Enviar propuesta inicial', saasId: s1, status: 'doing', notes: 'Esperando feedback del cliente.', checks: [{ label: 'Propuesta lista', done: true }, { label: 'Enviada por mail', done: true }, { label: 'Feedback recibido', done: false }] },
+        { id: task2, title: 'Configurar dominio demo', saasId: s2, status: 'todo', notes: 'Usar Cloudflare + Nic.ar', checks: [{ label: 'Crear registro', done: false }, { label: 'Asignar SSL', done: false }] }
+      ],
+      notes: [
+        { id: note1, saasId: s1, title: 'Claves AAPP.SPACE', content: 'Acceso panel admin\nUsuario: admin@aapp.space\nPass: demo123' },
+        { id: note2, saasId: '', title: 'Plantilla onboarding', content: '1) Reunión kickoff\n2) Accesos + logo\n3) Checklist QA\n4) Entrega + seguimiento' }
       ],
       meta: { version: 1, savedAt: null }
     };
