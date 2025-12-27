@@ -1,25 +1,26 @@
 window.AAPPCore = {
-  init() {
+  async init() {
     // Dark mode default
     this.applyDarkClass();
 
-    // Load DB
-    const raw = this.safeStorageGet(window.AAPPConstants.STORAGE_KEY);
-    if (this.storageBlocked) {
-      this.seedMinimal({ persist: false });
+    this.appLoading = true;
+    // Comprobar sesión antes de cargar datos
+    await this.checkSession();
+    if (!this.isAuthenticated) {
+      this.authChecking = false;
+      this.appLoading = false;
       return;
     }
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        this.db = this.normalizeDB(parsed);
-      } catch (e) {
-        console.warn('DB inválida, usando vacía', e);
-        this.persist();
-      }
-    } else {
-      // Seed mínimo con tus dos SaaS
-      this.seedMinimal();
+
+    try {
+      await this.loadRemoteState();
+    } catch (e) {
+      console.warn('No se pudo cargar la base de datos remota, usando seed mínimo.', e);
+      this.apiUnavailable = true;
+      this.seedMinimal({ persist: false });
+    } finally {
+      this.authChecking = false;
+      this.appLoading = false;
     }
 
     if (!this.forms.pos.date) this.forms.pos.date = this.todayISO();
@@ -40,6 +41,9 @@ window.AAPPCore = {
         clientId: d.clientId || '',
         provider: d.provider || '',
         status: d.status || 'Activo',
+        delegated: Boolean(d.delegated),
+        pointed: Boolean(d.pointed),
+        captcha: Boolean(d.captcha),
         notes: d.notes || ''
       })),
       plans: safe(input.plans).map((p) => ({
@@ -78,7 +82,7 @@ window.AAPPCore = {
         checks: (Array.isArray(t.checks) ? t.checks : []).map((chk, idx) => ({
           label: String(chk?.label || `Check ${idx + 1}`).trim(),
           done: Boolean(chk?.done)
-        })).filter(chk => chk.label)
+        })).filter((chk) => chk.label)
       })),
       notes: safe(input.notes).map((n) => ({
         id: n.id || this.uid(),
@@ -90,12 +94,45 @@ window.AAPPCore = {
     };
   },
 
-  persist() {
-    this.db.meta.savedAt = new Date().toISOString();
-    const saved = this.safeStorageSet(window.AAPPConstants.STORAGE_KEY, JSON.stringify(this.db));
-    if (!saved) {
-      alert('El almacenamiento local está bloqueado. Los datos no podrán persistir.');
+  async persist() {
+    if (!this.isAuthenticated) {
+      console.warn('No autenticado. Iniciá sesión para guardar.');
+      return;
     }
+    if (this.apiUnavailable) {
+      console.warn('API no disponible, no se guarda el estado todavía.');
+      return;
+    }
+    if (this.saving) return;
+
+    this.saving = true;
+    this.saveMessage = 'Guardando…';
+    this.db.meta.savedAt = new Date().toISOString();
+    try {
+      await this.saveStateToServer(this.db);
+      this.saveMessage = 'Datos guardados.';
+    } catch (err) {
+      console.error('No se pudo persistir en la base de datos.', err);
+      this.apiUnavailable = true;
+      this.saveMessage = 'Error al guardar.';
+      alert('No se pudo guardar en la base de datos MySQL. Verificá la conexión.');
+    } finally {
+      this.saving = false;
+      setTimeout(() => {
+        this.saveMessage = '';
+      }, 2000);
+    }
+  },
+
+  async loadRemoteState() {
+    const remote = await this.fetchStateFromServer();
+    if (remote) {
+      this.db = this.normalizeDB(remote);
+    } else {
+      this.seedMinimal();
+    }
+    if (!this.forms.pos.date) this.forms.pos.date = this.todayISO();
+    if (!this.forms.posCampaign.date) this.forms.posCampaign.date = this.todayISO();
   },
 
   toggleDark() {
@@ -123,7 +160,8 @@ window.AAPPCore = {
       resellerForm: (this.forms.reseller.id ? 'Editar plan revendedor' : 'Nuevo plan revendedor'),
       partnerForm: (this.forms.partner.id ? 'Editar partner' : 'Nuevo partner'),
       resellerHtml: 'Página de precios revendedor',
-      dataTools: 'Datos • Exportar / Importar / Demo'
+      dataTools: 'Datos • Exportar / Importar',
+      changePassword: 'Cambiar contraseña'
     };
     this.modal.title = titles[view] || 'Formulario';
 
@@ -136,5 +174,7 @@ window.AAPPCore = {
   closeModal() {
     this.modal.open = false;
     this.modal.view = '';
+    this.passwordFeedback = '';
+    this.passwordForm = { current: '', next: '', confirm: '' };
   }
 };

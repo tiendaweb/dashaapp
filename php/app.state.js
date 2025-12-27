@@ -12,6 +12,8 @@ window.AAPPState = () => ({
   passwordFeedback: '',
   saving: false,
   saveMessage: '',
+  apiUnavailable: false,
+  storageBlocked: false,
 
   tabs: [
     { key: 'dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },

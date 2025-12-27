@@ -71,6 +71,54 @@ window.AAPPUtils = {
     }
   },
 
+  safeStorageGet(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.warn('No se pudo acceder a localStorage.', e);
+      this.storageBlocked = true;
+      return null;
+    }
+  },
+
+  safeStorageSet(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      console.warn('No se pudo escribir en localStorage.', e);
+      this.storageBlocked = true;
+      return false;
+    }
+  },
+
+  safeStorageRemove(key) {
+    try {
+      localStorage.removeItem(key);
+      return true;
+    } catch (e) {
+      console.warn('No se pudo borrar en localStorage.', e);
+      this.storageBlocked = true;
+      return false;
+    }
+  },
+
+  loadLocalBackup() {
+    const raw = this.safeStorageGet(window.AAPPConstants.STORAGE_KEY);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      console.warn('Backup local inválido.', e);
+      return null;
+    }
+  },
+
+  saveLocalBackup(payload) {
+    const data = JSON.stringify(payload ?? {});
+    return this.safeStorageSet(window.AAPPConstants.STORAGE_KEY, data);
+  },
+
   async checkSession() {
     try {
       const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}?action=session`, {

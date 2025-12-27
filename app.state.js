@@ -1,8 +1,17 @@
 window.AAPPState = () => ({
+  appLoading: true,
   isDark: true,
   activeTab: 'dashboard',
   q: '',
   importText: '',
+  showSearch: false,
+  isAuthenticated: false,
+  authChecking: true,
+  authError: '',
+  authUser: null,
+  passwordFeedback: '',
+  saving: false,
+  saveMessage: '',
 
   tabs: [
     { key: 'dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },
@@ -10,6 +19,7 @@ window.AAPPState = () => ({
     { key: 'domains', label: 'Dominios', icon: 'fa-globe' },
     { key: 'plans', label: 'Planes', icon: 'fa-tags' },
     { key: 'campaigns', label: 'Campañas', icon: 'fa-bullhorn' },
+    { key: 'campaignRegister', label: 'Registrar Campaña', icon: 'fa-bullseye' },
     { key: 'clients', label: 'Clientes', icon: 'fa-users' },
     { key: 'extras', label: 'Extras', icon: 'fa-puzzle-piece' },
     { key: 'resellers', label: 'Precios Revendedor', icon: 'fa-handshake' },
@@ -41,6 +51,8 @@ window.AAPPState = () => ({
   resellerHtml: '',
 
   modal: { open: false, view: '', title: '' },
+  loginForm: { email: 'admin@aapp.uno', password: '' },
+  passwordForm: { current: '', next: '', confirm: '' },
 
   // UI filters
   domainFilterSaasId: '',
@@ -71,6 +83,9 @@ window.AAPPState = () => ({
       clientId: '',
       provider: '',
       status: 'Activo',
+      delegated: false,
+      pointed: false,
+      captcha: false,
       notes: ''
     },
     campaign: { id: '', saasId: '', adName: '', date: '', dailySpend: 0, totalSpend: 0, reach: 0, views: 0, costPerConversation: 0, notes: '' },
