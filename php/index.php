@@ -576,15 +576,14 @@ function persist_database_state(PDO $pdo, array $data): void
         $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
         $pdo->commit();
 
-        $metaPayload = [
-            'meta' => [
-                'version' => isset($state['meta']['version']) ? (int) $state['meta']['version'] : 1,
-                'savedAt' => $state['meta']['savedAt'] ?? date(DATE_ATOM),
-            ],
-        ];
+        $appStatePayload = $state;
+        $appStatePayload['meta']['version'] = isset($state['meta']['version'])
+            ? (int) $state['meta']['version']
+            : 1;
+        $appStatePayload['meta']['savedAt'] = $state['meta']['savedAt'] ?? date(DATE_ATOM);
         $stmt = $pdo->prepare('INSERT INTO app_state (id, data) VALUES (1, :data)
           ON DUPLICATE KEY UPDATE data = VALUES(data), updated_at = CURRENT_TIMESTAMP');
-        $stmt->execute([':data' => json_encode($metaPayload, JSON_UNESCAPED_UNICODE)]);
+        $stmt->execute([':data' => json_encode($appStatePayload, JSON_UNESCAPED_UNICODE)]);
     } catch (Throwable $e) {
         $pdo->rollBack();
         $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
