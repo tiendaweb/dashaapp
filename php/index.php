@@ -891,10 +891,19 @@ if (isset($_GET['action'])) {
       background: rgba(255,255,255,.04);
       border: 1px solid rgba(255,255,255,.10);
       outline: none;
+      color: rgb(226 232 240);
     }
     .input:focus {
       border-color: rgba(56,189,248,.55);
       box-shadow: 0 0 0 3px rgba(56,189,248,.15);
+    }
+    select.input {
+      color: rgb(226 232 240);
+    }
+    select.input option,
+    select.input optgroup {
+      background-color: rgb(15 23 42);
+      color: rgb(226 232 240);
     }
     .table th { position: sticky; top: 0; background: rgba(2,6,23,.95); }
     [x-cloak] { display: none !important; }
@@ -1417,6 +1426,9 @@ if (isset($_GET['action'])) {
                   <th class="p-3">Cliente (opcional)</th>
                   <th class="p-3">Proveedor</th>
                   <th class="p-3">Estado</th>
+                  <th class="p-3">Delegado</th>
+                  <th class="p-3">Apuntado</th>
+                  <th class="p-3">Captcha</th>
                   <th class="p-3">Notas</th>
                   <th class="p-3 w-40">Acciones</th>
                 </tr>
@@ -1451,6 +1463,27 @@ if (isset($_GET['action'])) {
                     <td class="p-3">
                       <span class="badge text-xs px-2 py-1 rounded-lg" x-text="d.status || 'Activo'"></span>
                     </td>
+                    <td class="p-3">
+                      <span class="inline-flex items-center gap-2 text-xs px-2 py-1 rounded-lg border transition"
+                        :class="d.delegated ? 'border-emerald-400/60 bg-emerald-500/10 text-emerald-100' : 'border-white/10 bg-white/5 text-slate-300'">
+                        <i class="fa-solid" :class="d.delegated ? 'fa-check text-emerald-300' : 'fa-minus text-slate-400'"></i>
+                        <span x-text="d.delegated ? 'Sí' : 'No'"></span>
+                      </span>
+                    </td>
+                    <td class="p-3">
+                      <span class="inline-flex items-center gap-2 text-xs px-2 py-1 rounded-lg border transition"
+                        :class="d.pointed ? 'border-sky-400/60 bg-sky-500/10 text-sky-100' : 'border-white/10 bg-white/5 text-slate-300'">
+                        <i class="fa-solid" :class="d.pointed ? 'fa-check text-sky-300' : 'fa-minus text-slate-400'"></i>
+                        <span x-text="d.pointed ? 'Sí' : 'No'"></span>
+                      </span>
+                    </td>
+                    <td class="p-3">
+                      <span class="inline-flex items-center gap-2 text-xs px-2 py-1 rounded-lg border transition"
+                        :class="d.captcha ? 'border-violet-400/60 bg-violet-500/10 text-violet-100' : 'border-white/10 bg-white/5 text-slate-300'">
+                        <i class="fa-solid" :class="d.captcha ? 'fa-check text-violet-300' : 'fa-minus text-slate-400'"></i>
+                        <span x-text="d.captcha ? 'Sí' : 'No'"></span>
+                      </span>
+                    </td>
                     <td class="p-3 text-slate-300" x-text="d.notes || '-'"></td>
                     <td class="p-3">
                       <div class="flex gap-2">
@@ -1466,7 +1499,7 @@ if (isset($_GET['action'])) {
                 </template>
 
                 <tr x-show="filteredDomains().length===0">
-                  <td class="p-6 text-slate-400" colspan="7">
+                  <td class="p-6 text-slate-400" colspan="10">
                     No hay dominios cargados. Creá dominios y vinculalos a una empresa (y opcionalmente a un cliente).
                   </td>
                 </tr>
@@ -2771,6 +2804,62 @@ if (isset($_GET['action'])) {
                 <option>Vencido</option>
                 <option>En transferencia</option>
               </select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Toggles rápidos</label>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1">
+                <button
+                  type="button"
+                  class="input rounded-xl px-3 py-2 flex items-center justify-between text-sm transition"
+                  :class="forms.domain.delegated ? 'border-emerald-400/60 bg-emerald-500/10 text-emerald-100' : 'border-white/10 text-slate-200'"
+                  @click="forms.domain.delegated = !forms.domain.delegated">
+                  <div class="text-left">
+                    <div class="font-semibold">Delegado</div>
+                    <div class="text-xs text-slate-400">DNS gestionado afuera</div>
+                  </div>
+                  <span
+                    class="relative inline-flex h-6 w-10 items-center rounded-full transition"
+                    :class="forms.domain.delegated ? 'bg-emerald-400/70' : 'bg-white/15'">
+                    <span
+                      class="absolute left-1 h-4 w-4 rounded-full bg-slate-900 transition"
+                      :class="forms.domain.delegated ? 'translate-x-4 bg-white' : ''"></span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="input rounded-xl px-3 py-2 flex items-center justify-between text-sm transition"
+                  :class="forms.domain.pointed ? 'border-sky-400/60 bg-sky-500/10 text-sky-100' : 'border-white/10 text-slate-200'"
+                  @click="forms.domain.pointed = !forms.domain.pointed">
+                  <div class="text-left">
+                    <div class="font-semibold">Apuntado</div>
+                    <div class="text-xs text-slate-400">Registros listos</div>
+                  </div>
+                  <span
+                    class="relative inline-flex h-6 w-10 items-center rounded-full transition"
+                    :class="forms.domain.pointed ? 'bg-sky-400/70' : 'bg-white/15'">
+                    <span
+                      class="absolute left-1 h-4 w-4 rounded-full bg-slate-900 transition"
+                      :class="forms.domain.pointed ? 'translate-x-4 bg-white' : ''"></span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="input rounded-xl px-3 py-2 flex items-center justify-between text-sm transition"
+                  :class="forms.domain.captcha ? 'border-violet-400/60 bg-violet-500/10 text-violet-100' : 'border-white/10 text-slate-200'"
+                  @click="forms.domain.captcha = !forms.domain.captcha">
+                  <div class="text-left">
+                    <div class="font-semibold">Captcha</div>
+                    <div class="text-xs text-slate-400">Protección activada</div>
+                  </div>
+                  <span
+                    class="relative inline-flex h-6 w-10 items-center rounded-full transition"
+                    :class="forms.domain.captcha ? 'bg-violet-400/70' : 'bg-white/15'">
+                    <span
+                      class="absolute left-1 h-4 w-4 rounded-full bg-slate-900 transition"
+                      :class="forms.domain.captcha ? 'translate-x-4 bg-white' : ''"></span>
+                  </span>
+                </button>
+              </div>
             </div>
             <div class="md:col-span-2">
               <label class="text-xs text-slate-300">Notas</label>

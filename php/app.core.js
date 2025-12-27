@@ -41,6 +41,9 @@ window.AAPPCore = {
         clientId: d.clientId || '',
         provider: d.provider || '',
         status: d.status || 'Activo',
+        delegated: Boolean(d.delegated),
+        pointed: Boolean(d.pointed),
+        captcha: Boolean(d.captcha),
         notes: d.notes || ''
       })),
       plans: safe(input.plans).map((p) => ({

@@ -144,8 +144,8 @@ window.AAPPSeeds = {
         { id: c2, name: 'Cliente Ejemplo 2', saasId: s1, planId: p1, extraIds: [e2, e3], email: 'cliente2@mail.com', password: 'abcd', date: this.todayISO(), notes: 'Quiere activar hoy', links: 'Drive: carpeta propuesta' }
       ],
       domains: [
-        { id: d1, name: 'aapp.space', saasId: s1, clientId: '', provider: 'Cloudflare', status: 'Activo', notes: 'Renovar en 60 días' },
-        { id: d2, name: 'tiendawpp.com.ar', saasId: s2, clientId: c1, provider: 'Nic.ar', status: 'Activo', notes: 'Facturación al cliente' }
+        { id: d1, name: 'aapp.space', saasId: s1, clientId: '', provider: 'Cloudflare', status: 'Activo', delegated: true, pointed: true, captcha: true, notes: 'Renovar en 60 días' },
+        { id: d2, name: 'tiendawpp.com.ar', saasId: s2, clientId: c1, provider: 'Nic.ar', status: 'Activo', delegated: false, pointed: true, captcha: false, notes: 'Facturación al cliente' }
       ],
       posSales: [
         { id: sale1, buyerName: 'Local Demo', buyerEmail: 'venta@demo.com', saasId: s1, planId: p1, extraIds: [e2], date: this.todayISO(), paymentMethod: 'Transferencia', amount: 125000, notes: 'Venta rápida POS.' }
