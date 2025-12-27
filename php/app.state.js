@@ -12,7 +12,7 @@ window.AAPPState = () => ({
   passwordFeedback: '',
   saving: false,
   saveMessage: '',
-  apiUnavailable: false,
+  apiUnavailable: Boolean(window.AAPP_BOOTSTRAP?.apiUnavailable),
   storageBlocked: false,
 
   tabs: [
