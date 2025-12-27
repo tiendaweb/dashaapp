@@ -61,6 +61,7 @@ window.AAPPBulk = {
     const list = Array.isArray(records) ? records : [];
     if (!area || !list.length) return { added: 0, updated: 0, skipped: list.length || 0 };
 
+    const overwrite = options.overwrite !== false;
     if (!Array.isArray(this.db[area])) this.db[area] = [];
     const collection = this.db[area];
     const existing = new Map(collection.map((item) => [item.id, item]));
@@ -71,7 +72,7 @@ window.AAPPBulk = {
       const current = existing.get(normalized.id);
 
       if (current) {
-        if (options.overwrite) {
+        if (overwrite) {
           Object.assign(current, normalized);
           summary.updated += 1;
         } else {
