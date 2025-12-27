@@ -590,6 +590,117 @@ window.AAPPCrud = {
     this.persist();
   },
 
+  // Tasks / Tareas
+  resetTaskForm() {
+    this.forms.task = { id: '', title: '', saasId: '', status: 'todo', notes: '', checks: [] };
+    this.taskFormPreset = 'simple';
+    this.applyTaskPreset();
+  },
+  applyTaskPreset() {
+    const preset = this.taskTemplates.find((p) => p.key === this.taskFormPreset);
+    if (!preset) return;
+    this.forms.task.checks = (preset.checks || []).map((label) => ({ label, done: false }));
+  },
+  addTaskCheckRow() {
+    if (!Array.isArray(this.forms.task.checks)) this.forms.task.checks = [];
+    this.forms.task.checks.push({ label: 'Nuevo check', done: false });
+  },
+  removeTaskCheckRow(idx) {
+    if (!Array.isArray(this.forms.task.checks)) return;
+    this.forms.task.checks.splice(idx, 1);
+  },
+  saveTask() {
+    const f = this.forms.task;
+    if (!String(f.title || '').trim()) return alert('Falta el título.');
+    const payload = {
+      id: f.id || this.uid(),
+      title: f.title.trim(),
+      saasId: f.saasId || '',
+      status: f.status || 'todo',
+      notes: f.notes || '',
+      checks: (Array.isArray(f.checks) ? f.checks : [])
+        .map((chk, idx) => ({
+          label: String(chk?.label || `Check ${idx + 1}`).trim(),
+          done: Boolean(chk?.done)
+        }))
+        .filter((chk) => chk.label)
+    };
+
+    if (f.id) {
+      const idx = this.db.tasks.findIndex((t) => t.id === f.id);
+      if (idx >= 0) this.db.tasks[idx] = { ...this.db.tasks[idx], ...payload };
+    } else {
+      this.db.tasks.push(payload);
+    }
+    this.persist();
+    this.resetTaskForm();
+  },
+  editTask(id) {
+    const t = this.db.tasks.find((task) => task.id === id);
+    if (!t) return;
+    this.forms.task = JSON.parse(JSON.stringify(t));
+    this.taskFormPreset = 'custom';
+  },
+  updateTaskStatus(id, status) {
+    const idx = this.db.tasks.findIndex((t) => t.id === id);
+    if (idx < 0) return;
+    this.db.tasks[idx].status = status;
+    this.persist();
+  },
+  toggleTaskCheck(id, checkIdx, checked) {
+    const task = this.db.tasks.find((t) => t.id === id);
+    if (!task || !Array.isArray(task.checks) || !task.checks[checkIdx]) return;
+    task.checks[checkIdx].done = checked;
+    this.persist();
+  },
+  deleteTask(id) {
+    if (!confirm('¿Borrar esta tarea?')) return;
+    this.db.tasks = this.db.tasks.filter((t) => t.id !== id);
+    this.persist();
+  },
+
+  // Notas
+  resetNoteForm() {
+    this.forms.note = { id: '', saasId: '', title: '', content: '' };
+  },
+  saveNote() {
+    const f = this.forms.note;
+    if (!String(f.title || '').trim()) return alert('Falta el título de la nota.');
+    if (!String(f.content || '').trim()) return alert('Agregá contenido a la nota.');
+    const payload = {
+      id: f.id || this.uid(),
+      saasId: f.saasId || '',
+      title: f.title.trim(),
+      content: f.content.trim()
+    };
+
+    if (f.id) {
+      const idx = this.db.notes.findIndex((n) => n.id === f.id);
+      if (idx >= 0) this.db.notes[idx] = { ...this.db.notes[idx], ...payload };
+    } else {
+      this.db.notes.push(payload);
+    }
+    this.persist();
+    this.resetNoteForm();
+  },
+  editNote(id) {
+    const n = this.db.notes.find((note) => note.id === id);
+    if (!n) return;
+    this.forms.note = JSON.parse(JSON.stringify(n));
+  },
+  deleteNote(id) {
+    if (!confirm('¿Borrar esta nota?')) return;
+    this.db.notes = this.db.notes.filter((n) => n.id !== id);
+    this.persist();
+  },
+  async copyNote(id) {
+    const n = this.db.notes.find((note) => note.id === id);
+    if (!n) return;
+    const ok = await this.copyToClipboard(`${n.title}\n${n.content}`);
+    if (ok) alert('Nota copiada.');
+    else alert('No se pudo copiar la nota.');
+  },
+
   // Data tools
   buildExportRows() {
     const header = [
@@ -634,6 +745,8 @@ window.AAPPCrud = {
       'links',
       'amount',
       'commission',
+      'checks',
+      'content',
       'savedAt',
       'metaVersion'
     ];
@@ -647,6 +760,11 @@ window.AAPPCrud = {
         const extras = Array.isArray(data.extraIds) ? data.extraIds.join('|') : data.extraIds;
         return normalizeCell(extras);
       }
+      if (key === 'checks') {
+        const checks = Array.isArray(data.checks) ? data.checks.map((c) => `${c.label}::${c.done ? '1' : '0'}`).join('|') : '';
+        return normalizeCell(checks);
+      }
+      if (key === 'content') return normalizeCell(data.content);
       return normalizeCell(data[key]);
     });
 
@@ -661,6 +779,8 @@ window.AAPPCrud = {
     this.db.clients.forEach((item) => rows.push(buildRow('clients', item)));
     this.db.posSales.forEach((item) => rows.push(buildRow('posSales', item)));
     this.db.expenses.forEach((item) => rows.push(buildRow('expenses', item)));
+    this.db.tasks.forEach((item) => rows.push(buildRow('tasks', item)));
+    this.db.notes.forEach((item) => rows.push(buildRow('notes', item)));
     rows.push(buildRow('meta', {
       savedAt: this.db.meta?.savedAt || '',
       metaVersion: this.db.meta?.version || ''
@@ -741,6 +861,8 @@ window.AAPPCrud = {
       clients: [],
       posSales: [],
       expenses: [],
+      tasks: [],
+      notes: [],
       meta: { version: 1, savedAt: null }
     };
 
@@ -866,6 +988,31 @@ window.AAPPCrud = {
           name: record.name || '',
           amount: toNumber(record.amount),
           date: record.date || ''
+        });
+      } else if (area === 'tasks') {
+        const checksRaw = String(record.checks || '')
+          .split('|')
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .map((item) => {
+            const [label, doneFlag] = item.split('::');
+            return { label: label || '', done: doneFlag === '1' };
+          })
+          .filter((chk) => chk.label);
+        result.tasks.push({
+          id,
+          title: record.title || '',
+          saasId: record.saasId || '',
+          status: record.status || 'todo',
+          notes: record.notes || '',
+          checks: checksRaw
+        });
+      } else if (area === 'notes') {
+        result.notes.push({
+          id,
+          saasId: record.saasId || '',
+          title: record.title || '',
+          content: record.content || ''
         });
       } else if (area === 'meta') {
         result.meta = {

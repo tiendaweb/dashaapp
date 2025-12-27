@@ -79,5 +79,21 @@ window.AAPPRelations = {
   },
   resellerTypeLabel(reseller) {
     return reseller?.sourceType === 'plan' ? 'Plan' : 'Extra';
+  },
+
+  tasksByStatus(status) {
+    return this.filteredTasks().filter((t) => t.status === status);
+  },
+  taskProgress(task) {
+    const total = (task.checks || []).length;
+    const done = (task.checks || []).filter((c) => c.done).length;
+    return { done, total };
+  },
+  taskStatusLabel(status) {
+    const map = { todo: 'Por hacer', doing: 'En progreso', done: 'Listo' };
+    return map[status] || status;
+  },
+  noteCompany(note) {
+    return note?.saasId ? this.saasName(note.saasId) : 'General';
   }
 };

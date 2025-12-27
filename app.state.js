@@ -15,6 +15,8 @@ window.AAPPState = () => ({
     { key: 'resellers', label: 'Precios Revendedor', icon: 'fa-handshake' },
     { key: 'partners', label: 'Partners', icon: 'fa-people-group' },
     { key: 'pos', label: 'POS', icon: 'fa-cash-register' },
+    { key: 'tasks', label: 'Tareas', icon: 'fa-list-check' },
+    { key: 'notes', label: 'Notas', icon: 'fa-note-sticky' },
     { key: 'balance', label: 'Balance', icon: 'fa-chart-line' },
     { key: 'help', label: 'Ayuda', icon: 'fa-circle-question' },
   ],
@@ -30,6 +32,8 @@ window.AAPPState = () => ({
     clients: [],
     posSales: [],
     expenses: [], // egresos manuales
+    tasks: [],
+    notes: [],
     meta: { version: 1, savedAt: null }
   },
 
@@ -40,6 +44,7 @@ window.AAPPState = () => ({
 
   // UI filters
   domainFilterSaasId: '',
+  noteFilterSaasId: '',
 
   imports: {
     plan: '',
@@ -118,6 +123,20 @@ window.AAPPState = () => ({
       views: 0,
       costPerConversation: 0,
       notes: ''
-    }
-  }
+    },
+    task: { id: '', title: '', saasId: '', status: 'todo', notes: '', checks: [] },
+    note: { id: '', saasId: '', title: '', content: '' }
+  },
+
+  taskTemplates: [
+    { key: 'simple', label: 'Checklist simple', checks: ['Brief listo', 'Accesos/credenciales', 'QA básico'] },
+    { key: 'entrega', label: 'Entrega rápida', checks: ['Propuesta enviada', 'Pago confirmado', 'Enviar accesos'] },
+    { key: 'ops', label: 'Operativo', checks: ['Asignar responsable', 'Seguimiento con cliente', 'Cerrar tarea'] }
+  ],
+  taskColumns: [
+    { key: 'todo', label: 'Por hacer', dot: 'bg-amber-400' },
+    { key: 'doing', label: 'En progreso', dot: 'bg-sky-400' },
+    { key: 'done', label: 'Listo', dot: 'bg-emerald-400' }
+  ],
+  taskFormPreset: 'simple'
 });
