@@ -620,6 +620,7 @@ window.AAPPCrud = {
   resetTaskForm() {
     this.forms.task = { id: '', title: '', saasId: '', status: 'todo', notes: '', checks: [] };
     this.taskFormPreset = 'simple';
+    this.newTaskCheckLabel = '';
     this.applyTaskPreset();
   },
   applyTaskPreset() {
@@ -630,10 +631,36 @@ window.AAPPCrud = {
   addTaskCheckRow() {
     if (!Array.isArray(this.forms.task.checks)) this.forms.task.checks = [];
     this.forms.task.checks.push({ label: 'Nuevo check', done: false });
+    this.newTaskCheckLabel = '';
+  },
+  addTaskCheckFromInput() {
+    const label = String(this.newTaskCheckLabel || '').trim();
+    if (!label) return;
+    if (!Array.isArray(this.forms.task.checks)) this.forms.task.checks = [];
+    this.forms.task.checks.push({ label, done: false });
+    this.newTaskCheckLabel = '';
   },
   removeTaskCheckRow(idx) {
     if (!Array.isArray(this.forms.task.checks)) return;
     this.forms.task.checks.splice(idx, 1);
+    if (this.dragTaskCheckIdx === idx) this.dragTaskCheckIdx = null;
+  },
+  startTaskCheckDrag(idx) {
+    this.dragTaskCheckIdx = idx;
+  },
+  dropTaskCheckBefore(idx) {
+    if (!Array.isArray(this.forms.task.checks)) return;
+    const from = this.dragTaskCheckIdx;
+    if (from === null || from === undefined || from < 0 || from === idx) return;
+    const list = [...this.forms.task.checks];
+    const [item] = list.splice(from, 1);
+    const insertAt = from < idx ? idx - 1 : idx;
+    list.splice(insertAt, 0, item);
+    this.forms.task.checks = list;
+    this.dragTaskCheckIdx = null;
+  },
+  clearTaskCheckDrag() {
+    this.dragTaskCheckIdx = null;
   },
   saveTask() {
     const f = this.forms.task;
@@ -666,6 +693,8 @@ window.AAPPCrud = {
     if (!t) return;
     this.forms.task = JSON.parse(JSON.stringify(t));
     this.taskFormPreset = 'custom';
+    this.newTaskCheckLabel = '';
+    this.openModal('taskForm');
   },
   updateTaskStatus(id, status) {
     const idx = this.db.tasks.findIndex((t) => t.id === id);
@@ -683,6 +712,38 @@ window.AAPPCrud = {
     if (!confirm('¿Borrar esta tarea?')) return;
     this.db.tasks = this.db.tasks.filter((t) => t.id !== id);
     this.persist();
+  },
+  startTaskDrag(id) {
+    this.dragTaskId = id;
+  },
+  dropTaskBefore(targetId, status) {
+    const dragId = this.dragTaskId;
+    if (!dragId || dragId === targetId) return;
+    const tasks = this.db.tasks;
+    const fromIdx = tasks.findIndex((t) => t.id === dragId);
+    const targetIdx = tasks.findIndex((t) => t.id === targetId);
+    if (fromIdx < 0 || targetIdx < 0) return;
+    const [task] = tasks.splice(fromIdx, 1);
+    task.status = status;
+    const insertAt = fromIdx < targetIdx ? targetIdx - 1 : targetIdx;
+    tasks.splice(insertAt, 0, task);
+    this.persist();
+    this.dragTaskId = '';
+  },
+  dropTaskInColumn(status) {
+    const dragId = this.dragTaskId;
+    if (!dragId) return;
+    const tasks = this.db.tasks;
+    const fromIdx = tasks.findIndex((t) => t.id === dragId);
+    if (fromIdx < 0) return;
+    const [task] = tasks.splice(fromIdx, 1);
+    task.status = status;
+    tasks.push(task);
+    this.persist();
+    this.dragTaskId = '';
+  },
+  clearTaskDrag() {
+    this.dragTaskId = '';
   },
 
   // Notas
@@ -713,6 +774,7 @@ window.AAPPCrud = {
     const n = this.db.notes.find((note) => note.id === id);
     if (!n) return;
     this.forms.note = JSON.parse(JSON.stringify(n));
+    this.openModal('noteForm');
   },
   deleteNote(id) {
     if (!confirm('¿Borrar esta nota?')) return;
