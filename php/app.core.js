@@ -4,6 +4,8 @@ window.AAPPCore = {
     this.applyDarkClass();
 
     this.appLoading = true;
+    // Preferencias UI locales (ocultar columnas, filtros)
+    this.uiPrefs = { ...this.uiPrefs, ...this.loadUiPrefs() };
     // Comprobar sesión antes de cargar datos
     await this.checkSession();
     if (!this.isAuthenticated) {
@@ -28,6 +30,10 @@ window.AAPPCore = {
     if (this.applyTaskPreset && (!this.forms.task.checks || this.forms.task.checks.length === 0)) {
       this.applyTaskPreset();
     }
+
+    // Sincronizar filtros con preferencias guardadas
+    this.taskFilterSaasId = this.uiPrefs.taskFilterSaasId || '';
+    this.noteFilterSaasId = this.uiPrefs.noteFilterSaasId || '';
   },
 
   normalizeDB(input) {
@@ -182,7 +188,9 @@ window.AAPPCore = {
       resellerHtml: 'Página de precios revendedor',
       dataTools: 'Datos • Guardar / Exportar / Importar',
       changePassword: 'Cambiar contraseña',
-      settings: 'Ajustes y personalización'
+      settings: 'Ajustes y personalización',
+      taskForm: (this.forms.task.id ? 'Editar tarea' : 'Nueva tarea'),
+      noteForm: (this.forms.note.id ? 'Editar nota' : 'Nueva nota')
     };
     this.modal.title = titles[view] || 'Formulario';
 

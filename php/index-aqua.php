@@ -1480,33 +1480,6 @@ if (isset($_GET['action'])) {
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
           <div class="glass rounded-2xl p-4 ring-blue-soft">
             <div class="flex items-center justify-between mb-3">
-              <h3 class="font-extrabold">Ingresos por tipo</h3>
-              <span class="badge text-xs px-2 py-1 rounded-lg">Estimado mensual</span>
-            </div>
-            <div class="space-y-4">
-              <div>
-                <div class="flex items-center justify-between text-xs text-slate-300 mb-2">
-                  <span>Planes</span>
-                  <span x-text="fmtMoney(incomePlansMonthlyEstimate())"></span>
-                </div>
-                <div class="h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div class="h-full bg-emerald-400" :style="'width:' + Math.min(100, Math.round((incomePlansMonthlyEstimate() / Math.max(totalIncomeEstimate(), 1)) * 100)) + '%'"></div>
-                </div>
-              </div>
-              <div>
-                <div class="flex items-center justify-between text-xs text-slate-300 mb-2">
-                  <span>Extras</span>
-                  <span x-text="fmtMoney(incomeExtrasMonthlyEstimate())"></span>
-                </div>
-                <div class="h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div class="h-full bg-sky-400" :style="'width:' + Math.min(100, Math.round((incomeExtrasMonthlyEstimate() / Math.max(totalIncomeEstimate(), 1)) * 100)) + '%'"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="glass rounded-2xl p-4 ring-blue-soft">
-            <div class="flex items-center justify-between mb-3">
               <h3 class="font-extrabold">Clientes por empresa</h3>
               <span class="badge text-xs px-2 py-1 rounded-lg">Cobertura</span>
             </div>
@@ -1527,9 +1500,6 @@ if (isset($_GET['action'])) {
               Cargá empresas para ver su distribución de clientes.
             </div>
           </div>
-        </div>
-
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
           <div class="glass rounded-2xl overflow-hidden">
             <div class="p-4 border-b border-white/10 flex items-center justify-between">
               <h3 class="font-extrabold">Empresas principales</h3>
@@ -1561,8 +1531,36 @@ if (isset($_GET['action'])) {
                       Sin empresas cargadas todavía.
                     </td>
                   </tr>
-                </tbody>
-              </table>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div class="glass rounded-2xl p-4 ring-blue-soft">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-extrabold">Ingresos por tipo</h3>
+              <span class="badge text-xs px-2 py-1 rounded-lg">Estimado mensual</span>
+            </div>
+            <div class="space-y-4">
+              <div>
+                <div class="flex items-center justify-between text-xs text-slate-300 mb-2">
+                  <span>Planes</span>
+                  <span x-text="fmtMoney(incomePlansMonthlyEstimate())"></span>
+                </div>
+                <div class="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div class="h-full bg-emerald-400" :style="'width:' + Math.min(100, Math.round((incomePlansMonthlyEstimate() / Math.max(totalIncomeEstimate(), 1)) * 100)) + '%'"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex items-center justify-between text-xs text-slate-300 mb-2">
+                  <span>Extras</span>
+                  <span x-text="fmtMoney(incomeExtrasMonthlyEstimate())"></span>
+                </div>
+                <div class="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div class="h-full bg-sky-400" :style="'width:' + Math.min(100, Math.round((incomeExtrasMonthlyEstimate() / Math.max(totalIncomeEstimate(), 1)) * 100)) + '%'"></div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -2274,35 +2272,58 @@ if (isset($_GET['action'])) {
           </div>
         </div>
 
+        <div class="glass rounded-2xl p-4 mb-4 ring-blue-soft" x-data="{ cols: [
+          { key: 'saas', label: 'Empresa' },
+          { key: 'type', label: 'Tipo' },
+          { key: 'base', label: 'Plan/Extra' },
+          { key: 'frequency', label: 'Frecuencia' },
+          { key: 'cost', label: 'Costo' },
+          { key: 'sale', label: 'Venta sugerida' },
+          { key: 'delivery', label: 'Entrega' },
+          { key: 'requirements', label: 'Requisitos' }
+        ] }">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="text-xs text-slate-300 font-semibold">Ocultar columnas</div>
+            <template x-for="col in cols" :key="'res-col-'+col.key">
+              <label class="flex items-center gap-2 text-xs bg-white/5 border border-white/10 rounded-xl px-3 py-2 cursor-pointer">
+                <input type="checkbox" class="accent-sky-400"
+                       :checked="isColumnHidden('resellers', col.key)"
+                       @change="toggleColumn('resellers', col.key)">
+                <span x-text="col.label"></span>
+              </label>
+            </template>
+          </div>
+        </div>
+
         <div class="glass rounded-2xl overflow-hidden">
           <div class="overflow-auto scrollbar">
             <table class="min-w-full table">
               <thead>
                 <tr class="text-left text-xs text-slate-300 border-b border-white/10">
-                  <th class="p-3">Empresa</th>
-                  <th class="p-3">Tipo</th>
-                  <th class="p-3">Plan/Extra</th>
-                  <th class="p-3">Frecuencia</th>
-                  <th class="p-3">Costo</th>
-                  <th class="p-3">Venta sugerida</th>
-                  <th class="p-3">Entrega</th>
-                  <th class="p-3">Requisitos</th>
+                  <th class="p-3" x-show="!isColumnHidden('resellers', 'saas')">Empresa</th>
+                  <th class="p-3" x-show="!isColumnHidden('resellers', 'type')">Tipo</th>
+                  <th class="p-3" x-show="!isColumnHidden('resellers', 'base')">Plan/Extra</th>
+                  <th class="p-3" x-show="!isColumnHidden('resellers', 'frequency')">Frecuencia</th>
+                  <th class="p-3" x-show="!isColumnHidden('resellers', 'cost')">Costo</th>
+                  <th class="p-3" x-show="!isColumnHidden('resellers', 'sale')">Venta sugerida</th>
+                  <th class="p-3" x-show="!isColumnHidden('resellers', 'delivery')">Entrega</th>
+                  <th class="p-3" x-show="!isColumnHidden('resellers', 'requirements')">Requisitos</th>
                   <th class="p-3 w-40">Acciones</th>
                 </tr>
               </thead>
               <tbody class="text-sm">
                 <template x-for="r in filteredResellers()" :key="'reseller-' + r.id">
                   <tr class="border-b border-white/5 hover:bg-white/5">
-                    <td class="p-3 text-sky-200 font-semibold" x-text="saasName(r.saasId)"></td>
-                    <td class="p-3">
+                    <td class="p-3 text-sky-200 font-semibold" x-text="saasName(r.saasId)" x-show="!isColumnHidden('resellers', 'saas')"></td>
+                    <td class="p-3" x-show="!isColumnHidden('resellers', 'type')">
                       <span class="badge px-2 py-1 rounded-lg text-xs" x-text="resellerTypeLabel(r)"></span>
                     </td>
-                    <td class="p-3 font-semibold" x-text="resellerBaseName(r)"></td>
-                    <td class="p-3 text-slate-300" x-text="resellerBaseFrequency(r)"></td>
-                    <td class="p-3 font-bold" x-text="fmtMoney(r.costPrice)"></td>
-                    <td class="p-3 font-bold text-sky-200" x-text="fmtMoney(r.salePrice)"></td>
-                    <td class="p-3 text-slate-300" x-text="r.deliveryTime || '-'"></td>
-                    <td class="p-3 text-slate-300" x-text="r.requirements || '-'"></td>
+                    <td class="p-3 font-semibold" x-text="resellerBaseName(r)" x-show="!isColumnHidden('resellers', 'base')"></td>
+                    <td class="p-3 text-slate-300" x-text="resellerBaseFrequency(r)" x-show="!isColumnHidden('resellers', 'frequency')"></td>
+                    <td class="p-3 font-bold" x-text="fmtMoney(r.costPrice)" x-show="!isColumnHidden('resellers', 'cost')"></td>
+                    <td class="p-3 font-bold text-sky-200" x-text="fmtMoney(r.salePrice)" x-show="!isColumnHidden('resellers', 'sale')"></td>
+                    <td class="p-3 text-slate-300" x-text="r.deliveryTime || '-'" x-show="!isColumnHidden('resellers', 'delivery')"></td>
+                    <td class="p-3 text-slate-300" x-text="r.requirements || '-'" x-show="!isColumnHidden('resellers', 'requirements')"></td>
                     <td class="p-3">
                       <div class="flex gap-2">
                         <button class="btn rounded-xl px-3 py-2 text-xs" @click="editReseller(r.id)">
@@ -2339,17 +2360,37 @@ if (isset($_GET['action'])) {
           </div>
         </div>
 
+        <div class="glass rounded-2xl p-4 mb-4 ring-blue-soft" x-data="{ cols: [
+          { key: 'company', label: 'Empresa' },
+          { key: 'email', label: 'Email' },
+          { key: 'phone', label: 'Teléfono' },
+          { key: 'commission', label: 'Comisión' },
+          { key: 'notes', label: 'Notas' }
+        ] }">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="text-xs text-slate-300 font-semibold">Ocultar columnas</div>
+            <template x-for="col in cols" :key="'partner-col-'+col.key">
+              <label class="flex items-center gap-2 text-xs bg-white/5 border border-white/10 rounded-xl px-3 py-2 cursor-pointer">
+                <input type="checkbox" class="accent-sky-400"
+                       :checked="isColumnHidden('partners', col.key)"
+                       @change="toggleColumn('partners', col.key)">
+                <span x-text="col.label"></span>
+              </label>
+            </template>
+          </div>
+        </div>
+
         <div class="glass rounded-2xl overflow-hidden">
           <div class="overflow-auto scrollbar">
             <table class="min-w-full table">
               <thead>
                 <tr class="text-left text-xs text-slate-300 border-b border-white/10">
                   <th class="p-3">Nombre</th>
-                  <th class="p-3">Empresa</th>
-                  <th class="p-3">Email</th>
-                  <th class="p-3">Teléfono</th>
-                  <th class="p-3">Comisión</th>
-                  <th class="p-3">Notas</th>
+                  <th class="p-3" x-show="!isColumnHidden('partners', 'company')">Empresa</th>
+                  <th class="p-3" x-show="!isColumnHidden('partners', 'email')">Email</th>
+                  <th class="p-3" x-show="!isColumnHidden('partners', 'phone')">Teléfono</th>
+                  <th class="p-3" x-show="!isColumnHidden('partners', 'commission')">Comisión</th>
+                  <th class="p-3" x-show="!isColumnHidden('partners', 'notes')">Notas</th>
                   <th class="p-3 w-36">Acciones</th>
                 </tr>
               </thead>
@@ -2357,11 +2398,11 @@ if (isset($_GET['action'])) {
                 <template x-for="p in filteredPartners()" :key="'partner-' + p.id">
                   <tr class="border-b border-white/5 hover:bg-white/5">
                     <td class="p-3 font-semibold" x-text="p.name"></td>
-                    <td class="p-3 text-slate-300" x-text="p.company || '-'"></td>
-                    <td class="p-3 text-sky-200" x-text="p.email || '-'"></td>
-                    <td class="p-3 text-slate-300" x-text="p.phone || '-'"></td>
-                    <td class="p-3 text-slate-200" x-text="p.commission ? p.commission + '%' : '-'"></td>
-                    <td class="p-3 text-slate-300" x-text="p.notes || '-'"></td>
+                    <td class="p-3 text-slate-300" x-text="p.company || '-'" x-show="!isColumnHidden('partners', 'company')"></td>
+                    <td class="p-3 text-sky-200" x-text="p.email || '-'" x-show="!isColumnHidden('partners', 'email')"></td>
+                    <td class="p-3 text-slate-300" x-text="p.phone || '-'" x-show="!isColumnHidden('partners', 'phone')"></td>
+                    <td class="p-3 text-slate-200" x-text="p.commission ? p.commission + '%' : '-'" x-show="!isColumnHidden('partners', 'commission')"></td>
+                    <td class="p-3 text-slate-300" x-text="p.notes || '-'" x-show="!isColumnHidden('partners', 'notes')"></td>
                     <td class="p-3">
                       <div class="flex gap-2">
                         <button class="btn rounded-xl px-3 py-2 text-xs" @click="editPartner(p.id)">
@@ -2528,82 +2569,46 @@ if (isset($_GET['action'])) {
           <h2 class="text-lg font-extrabold">Tareas</h2>
           <span class="badge text-xs px-2 py-1 rounded-lg">To-do • Estados • Kanban</span>
           <div class="ml-auto flex items-center gap-2">
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetTaskForm(); openModal('taskForm')">
+              <i class="fa-solid fa-plus text-sky-300 mr-2"></i>Nueva tarea
+            </button>
             <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetTaskForm()">
-              <i class="fa-solid fa-rotate text-sky-300 mr-2"></i>Limpiar
+              <i class="fa-solid fa-rotate text-sky-300 mr-2"></i>Limpiar formulario
             </button>
           </div>
         </div>
 
-        <div class="glass rounded-2xl p-4 ring-blue-soft mb-4">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="md:col-span-2">
-              <label class="text-xs text-slate-300">Título de la tarea</label>
-              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.task.title" placeholder="Ej: Enviar propuesta / Revisar campaña" />
-            </div>
-            <div>
-              <label class="text-xs text-slate-300">Empresa (opcional)</label>
-              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.task.saasId">
-                <option value="">General</option>
-                <template x-for="s in db.saas" :key="'task-saas-'+s.id">
-                  <option :value="s.id" x-text="s.name"></option>
-                </template>
-              </select>
-            </div>
-            <div>
-              <label class="text-xs text-slate-300">Estado</label>
-              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.task.status">
-                <option value="todo">Por hacer</option>
-                <option value="doing">En progreso</option>
-                <option value="done">Listo</option>
-              </select>
-            </div>
-            <div class="md:col-span-2">
-              <label class="text-xs text-slate-300">Notas (opcional)</label>
-              <textarea class="input rounded-xl px-3 py-2 w-full min-h-[70px]" x-model="forms.task.notes" placeholder="Contexto, links, responsables…"></textarea>
-            </div>
+        <div class="glass rounded-2xl p-4 ring-blue-soft mb-4 flex flex-wrap items-center gap-3">
+          <div>
+            <div class="font-extrabold">Filtrar por empresa</div>
+            <div class="text-xs text-slate-300">Click en logo o nombre para enfocarte.</div>
           </div>
-
-          <div class="mt-4 space-y-2">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="text-xs text-slate-300">Checklist rápido</span>
-              <select class="input rounded-xl px-3 py-2 text-sm" x-model="taskFormPreset" @change="applyTaskPreset()">
-                <template x-for="preset in taskTemplates" :key="'preset-'+preset.key">
-                  <option :value="preset.key" x-text="preset.label"></option>
-                </template>
-                <option value="custom">Personalizado</option>
-              </select>
-              <button class="btn rounded-xl px-3 py-2 text-xs" @click="addTaskCheckRow()">
-                <i class="fa-solid fa-plus text-sky-300 mr-1"></i>Check
-              </button>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <template x-for="(chk, idx) in forms.task.checks" :key="'task-check-'+idx">
-                <div class="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/5">
-                  <input type="checkbox" class="accent-sky-400" :checked="chk.done" @change="forms.task.checks[idx].done = $event.target.checked" />
-                  <input class="bg-transparent text-sm outline-none" x-model="forms.task.checks[idx].label" />
-                  <button class="text-xs text-red-300 hover:text-red-200" @click="removeTaskCheckRow(idx)">
-                    <i class="fa-solid fa-xmark"></i>
-                  </button>
-                </div>
-              </template>
-              <div class="text-xs text-slate-400" x-show="forms.task.checks.length===0">Sin checks, podés agregarlos o usar un preset.</div>
-            </div>
-          </div>
-
-          <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div class="text-xs text-slate-300">
-              Los checks son simples switches para seguir estados (brief, QA, entrega, etc.).
-            </div>
-            <button class="btn rounded-xl px-3 py-2 text-sm" @click="saveTask()">
-              <i class="fa-solid fa-floppy-disk text-sky-300 mr-2"></i>
-              <span x-text="forms.task.id ? 'Actualizar tarea' : 'Agregar tarea'"></span>
+          <div class="flex flex-wrap gap-2">
+            <button class="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm"
+                    :class="taskFilterSaasId === '' ? 'border-sky-400/60 bg-sky-500/10 text-sky-100' : 'border-white/10 text-slate-200'"
+                    @click="setTaskFilter('')">
+              <span class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold">All</span>
+              <span>Todos</span>
             </button>
+            <template x-for="s in db.saas" :key="'task-filter-'+s.id">
+              <button class="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm"
+                      :class="taskFilterSaasId === s.id ? 'border-sky-400/60 bg-sky-500/10 text-sky-100' : 'border-white/10 text-slate-200'"
+                      @click="setTaskFilter(s.id)">
+                <span class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center overflow-hidden">
+                  <img :src="s.logoUrl" alt="" class="w-6 h-6 object-cover" x-show="s.logoUrl">
+                  <span class="text-xs font-bold" x-show="!s.logoUrl" x-text="(s.name || '').slice(0, 1) || '•'"></span>
+                </span>
+                <span x-text="s.name"></span>
+              </button>
+            </template>
           </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <template x-for="col in taskColumns" :key="'col-'+col.key">
-            <div class="glass rounded-2xl p-4 ring-blue-soft">
+            <div class="glass rounded-2xl p-4 ring-blue-soft"
+                 @dragover.prevent
+                 @drop="dropTaskInColumn(col.key)">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
                   <span class="w-2 h-2 rounded-full" :class="col.dot"></span>
@@ -2614,7 +2619,12 @@ if (isset($_GET['action'])) {
 
               <div class="space-y-3">
                 <template x-for="task in tasksByStatus(col.key)" :key="'task-'+task.id">
-                  <div class="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div class="rounded-xl border border-white/10 bg-white/5 p-3"
+                       draggable="true"
+                       @dragstart="startTaskDrag(task.id)"
+                       @dragend="clearTaskDrag()"
+                       @dragover.prevent
+                       @drop.stop="dropTaskBefore(task.id, col.key)">
                     <div class="flex items-start justify-between gap-3">
                       <div>
                         <div class="font-semibold" x-text="task.title"></div>
@@ -2673,45 +2683,38 @@ if (isset($_GET['action'])) {
           <h2 class="text-lg font-extrabold">Notas por empresa</h2>
           <span class="badge text-xs px-2 py-1 rounded-lg">Recordatorios • Links • Copiar rápido</span>
           <div class="ml-auto flex items-center gap-2">
-            <select class="input rounded-xl px-3 py-2 text-sm" x-model="noteFilterSaasId">
-              <option value="">Todas las empresas</option>
-              <template x-for="s in db.saas" :key="'note-filter-'+s.id">
-                <option :value="s.id" x-text="s.name"></option>
-              </template>
-            </select>
+            <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetNoteForm(); openModal('noteForm')">
+              <i class="fa-solid fa-plus text-sky-300 mr-2"></i>Nueva nota
+            </button>
             <button class="btn rounded-xl px-3 py-2 text-sm" @click="resetNoteForm()">
-              <i class="fa-solid fa-rotate text-sky-300 mr-2"></i>Limpiar
+              <i class="fa-solid fa-rotate text-sky-300 mr-2"></i>Limpiar formulario
             </button>
           </div>
         </div>
 
-        <div class="glass rounded-2xl p-4 ring-blue-soft mb-4">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label class="text-xs text-slate-300">Empresa</label>
-              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.note.saasId">
-                <option value="">General</option>
-                <template x-for="s in db.saas" :key="'note-saas-'+s.id">
-                  <option :value="s.id" x-text="s.name"></option>
-                </template>
-              </select>
-            </div>
-            <div class="md:col-span-2">
-              <label class="text-xs text-slate-300">Título</label>
-              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.note.title" placeholder="Ej: Accesos, onboarding, reuniones…" />
-            </div>
-            <div class="md:col-span-3">
-              <label class="text-xs text-slate-300">Contenido</label>
-              <textarea class="input rounded-xl px-3 py-2 w-full min-h-[90px]" x-model="forms.note.content" placeholder="Texto libre, links, pasos a seguir…"></textarea>
-            </div>
+        <div class="glass rounded-2xl p-4 ring-blue-soft mb-4 flex flex-wrap items-center gap-3">
+          <div>
+            <div class="font-extrabold">Filtrar por empresa</div>
+            <div class="text-xs text-slate-300">Logo o inicial + nombre para encontrar notas rápido.</div>
           </div>
-
-          <div class="mt-4 flex justify-between items-center gap-3">
-            <p class="text-xs text-slate-300">Guardá notas cortas y copiables por empresa o generales.</p>
-            <button class="btn rounded-xl px-3 py-2 text-sm" @click="saveNote()">
-              <i class="fa-solid fa-floppy-disk text-sky-300 mr-2"></i>
-              <span x-text="forms.note.id ? 'Actualizar nota' : 'Agregar nota'"></span>
+          <div class="flex flex-wrap gap-2">
+            <button class="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm"
+                    :class="noteFilterSaasId === '' ? 'border-sky-400/60 bg-sky-500/10 text-sky-100' : 'border-white/10 text-slate-200'"
+                    @click="setNoteFilter('')">
+              <span class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold">All</span>
+              <span>Todas</span>
             </button>
+            <template x-for="s in db.saas" :key="'note-filter-'+s.id">
+              <button class="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm"
+                      :class="noteFilterSaasId === s.id ? 'border-sky-400/60 bg-sky-500/10 text-sky-100' : 'border-white/10 text-slate-200'"
+                      @click="setNoteFilter(s.id)">
+                <span class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center overflow-hidden">
+                  <img :src="s.logoUrl" alt="" class="w-6 h-6 object-cover" x-show="s.logoUrl">
+                  <span class="text-xs font-bold" x-show="!s.logoUrl" x-text="(s.name || '').slice(0, 1) || '•'"></span>
+                </span>
+                <span x-text="s.name"></span>
+              </button>
+            </template>
           </div>
         </div>
 
@@ -3418,6 +3421,89 @@ if (isset($_GET['action'])) {
           </div>
         </div>
 
+        <!-- Task Form -->
+        <div x-show="modal.view==='taskForm'">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Título de la tarea</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.task.title" placeholder="Ej: Enviar propuesta / Revisar campaña" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Empresa (opcional)</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.task.saasId">
+                <option value="">General</option>
+                <template x-for="s in db.saas" :key="'task-saas-'+s.id">
+                  <option :value="s.id" x-text="s.name"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-300">Estado</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.task.status">
+                <option value="todo">Por hacer</option>
+                <option value="doing">En progreso</option>
+                <option value="done">Listo</option>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Notas (opcional)</label>
+              <textarea class="input rounded-xl px-3 py-2 w-full min-h-[70px]" x-model="forms.task.notes" placeholder="Contexto, links, responsables…"></textarea>
+            </div>
+          </div>
+
+          <div class="mt-4 space-y-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs text-slate-300">Checklist rápido</span>
+              <select class="input rounded-xl px-3 py-2 text-sm" x-model="taskFormPreset" @change="applyTaskPreset()">
+                <template x-for="preset in taskTemplates" :key="'preset-'+preset.key">
+                  <option :value="preset.key" x-text="preset.label"></option>
+                </template>
+                <option value="custom">Personalizado</option>
+              </select>
+              <div class="flex items-center gap-2">
+                <input class="input rounded-xl px-3 py-2 text-sm" x-model="newTaskCheckLabel" placeholder="Escribí un check y presioná Enter" @keydown.enter.prevent="addTaskCheckFromInput()" />
+                <button class="btn rounded-xl px-3 py-2 text-xs" @click="addTaskCheckFromInput()">
+                  <i class="fa-solid fa-plus text-sky-300 mr-1"></i>Agregar check
+                </button>
+              </div>
+              <button class="btn rounded-xl px-3 py-2 text-xs" @click="addTaskCheckRow()">
+                <i class="fa-solid fa-plus text-sky-300 mr-1"></i>Check vacío
+              </button>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <template x-for="(chk, idx) in forms.task.checks" :key="'task-check-'+idx">
+                <div class="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/5"
+                     draggable="true"
+                     @dragstart="startTaskCheckDrag(idx)"
+                     @dragend="clearTaskCheckDrag()"
+                     @dragover.prevent
+                     @drop="dropTaskCheckBefore(idx)">
+                  <input type="checkbox" class="accent-sky-400" :checked="chk.done" @change="forms.task.checks[idx].done = $event.target.checked" />
+                  <input class="bg-transparent text-sm outline-none" x-model="forms.task.checks[idx].label" />
+                  <button class="text-xs text-red-300 hover:text-red-200" @click="removeTaskCheckRow(idx)">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                  <i class="fa-solid fa-grip-vertical text-slate-500 text-xs"></i>
+                </div>
+              </template>
+              <div class="text-xs text-slate-400" x-show="forms.task.checks.length===0">Sin checks, podés agregarlos o usar un preset.</div>
+            </div>
+          </div>
+
+          <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="text-xs text-slate-300">
+              Arrastrá los checks para reordenarlos y las tarjetas en el kanban para mover estado y orden.
+            </div>
+            <div class="flex gap-2">
+              <button class="btn rounded-xl px-3 py-2 text-sm" @click="saveTask()">
+                <i class="fa-solid fa-floppy-disk text-sky-300 mr-2"></i>
+                <span x-text="forms.task.id ? 'Actualizar tarea' : 'Agregar tarea'"></span>
+              </button>
+              <button class="btn rounded-xl px-3 py-2 text-sm" @click="closeModal()">Cerrar</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Reseller Form -->
         <div x-show="modal.view==='resellerForm'">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -3508,6 +3594,40 @@ if (isset($_GET['action'])) {
               <i class="fa-solid fa-floppy-disk text-sky-300 mr-2"></i>Guardar
             </button>
             <button class="btn rounded-xl px-3 py-2 text-sm" @click="closeModal()">Cancelar</button>
+          </div>
+        </div>
+
+        <!-- Note Form -->
+        <div x-show="modal.view==='noteForm'">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="text-xs text-slate-300">Empresa</label>
+              <select class="input rounded-xl px-3 py-2 w-full" x-model="forms.note.saasId">
+                <option value="">General</option>
+                <template x-for="s in db.saas" :key="'note-saas-'+s.id">
+                  <option :value="s.id" x-text="s.name"></option>
+                </template>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Título</label>
+              <input class="input rounded-xl px-3 py-2 w-full" x-model="forms.note.title" placeholder="Ej: Accesos, onboarding, reuniones…" />
+            </div>
+            <div class="md:col-span-3">
+              <label class="text-xs text-slate-300">Contenido</label>
+              <textarea class="input rounded-xl px-3 py-2 w-full min-h-[90px]" x-model="forms.note.content" placeholder="Texto libre, links, pasos a seguir…"></textarea>
+            </div>
+          </div>
+
+          <div class="mt-4 flex justify-between items-center gap-3">
+            <p class="text-xs text-slate-300">Podés guardar varias notas seguidas sin cerrar este modal.</p>
+            <div class="flex gap-2">
+              <button class="btn rounded-xl px-3 py-2 text-sm" @click="saveNote()">
+                <i class="fa-solid fa-floppy-disk text-sky-300 mr-2"></i>
+                <span x-text="forms.note.id ? 'Actualizar nota' : 'Agregar nota'"></span>
+              </button>
+              <button class="btn rounded-xl px-3 py-2 text-sm" @click="closeModal()">Cerrar</button>
+            </div>
           </div>
         </div>
 
