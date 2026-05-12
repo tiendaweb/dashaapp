@@ -1,0 +1,15 @@
+{
+  "name": "dashaapp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch backend/src/server.js",
+    "start": "node backend/src/server.js",
+    "migrate": "node backend/src/scripts/migrate.js",
+    "seed": "node backend/src/scripts/seed.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

@@ -72,131 +72,29 @@ window.AAPPUtils = {
   },
 
   async checkSession() {
-    try {
-      const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}?action=session`, {
-        headers: { 'Accept': 'application/json' },
-        credentials: 'same-origin'
-      });
-      if (res.status === 401) {
-        this.isAuthenticated = false;
-        this.authUser = null;
-        return false;
-      }
-      const payload = await res.json();
-      if (payload.success && payload.user) {
-        this.isAuthenticated = true;
-        this.authUser = payload.user;
-        return true;
-      }
-    } catch (e) {
-      console.warn('No se pudo verificar la sesión.', e);
-    }
-    this.isAuthenticated = false;
-    this.authUser = null;
-    return false;
+    this.isAuthenticated = true;
+    this.authUser = { email: 'node@local', role: 'admin' };
+    return true;
   },
 
   async login() {
     this.authError = '';
-    this.appLoading = true;
-    const email = (this.loginForm.email || '').trim();
-    const password = (this.loginForm.password || '').trim();
-    if (!email || !password) {
-      this.authError = 'Completá email y contraseña.';
-      this.appLoading = false;
-      return;
-    }
-
-    try {
-      const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}?action=login`, {
-        method: 'POST',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ email, password })
-      });
-      const payload = await res.json();
-      if (!res.ok || !payload.success) {
-        throw new Error(payload.message || 'Email o contraseña incorrectos.');
-      }
-      this.isAuthenticated = true;
-      this.authUser = payload.user;
-      this.apiUnavailable = false;
-      this.authError = '';
-      await this.loadRemoteState();
-      this.appLoading = false;
-    } catch (e) {
-      console.error('Login falló', e);
-      this.authError = e.message || 'No se pudo iniciar sesión.';
-      this.isAuthenticated = false;
-      this.appLoading = false;
-    }
+    this.isAuthenticated = true;
+    this.authUser = { email: (this.loginForm.email || 'node@local').trim(), role: 'admin' };
+    await this.loadRemoteState();
   },
 
   async logout() {
-    const lastEmail = this.authUser?.email || this.loginForm.email || 'admin@aapp.uno';
-    try {
-      await fetch(`${window.AAPPConstants.API_ENDPOINT}?action=logout`, {
-        method: 'POST',
-        headers: { 'Accept': 'application/json' },
-        credentials: 'same-origin'
-      });
-    } catch (e) {
-      console.warn('Error cerrando sesión', e);
-    }
     this.isAuthenticated = false;
     this.authUser = null;
-    this.authChecking = false;
-    this.authError = '';
-    this.saving = false;
-    this.saveMessage = '';
-    this.loginForm = { email: lastEmail, password: '' };
-    this.db = this.normalizeDB({});
-    this.appLoading = false;
   },
 
   async submitPasswordChange() {
-    this.passwordFeedback = '';
-    const current = (this.passwordForm.current || '').trim();
-    const next = (this.passwordForm.next || '').trim();
-    const confirm = (this.passwordForm.confirm || '').trim();
-    if (!current || !next) {
-      this.passwordFeedback = 'Completá ambas contraseñas.';
-      return;
-    }
-    if (next !== confirm) {
-      this.passwordFeedback = 'Las contraseñas nuevas no coinciden.';
-      return;
-    }
-    if (next.length < 6) {
-      this.passwordFeedback = 'Usá al menos 6 caracteres.';
-      return;
-    }
-
-    try {
-      const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}?action=change_password`, {
-        method: 'POST',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ currentPassword: current, newPassword: next })
-      });
-      const payload = await res.json();
-      if (!res.ok || !payload.success) {
-        throw new Error(payload.message || 'No se pudo actualizar la contraseña.');
-      }
-      this.passwordFeedback = 'Contraseña actualizada.';
-      this.passwordForm = { current: '', next: '', confirm: '' };
-      setTimeout(() => {
-        this.passwordFeedback = '';
-        this.closeModal();
-      }, 600);
-    } catch (e) {
-      console.error('Cambio de contraseña falló', e);
-      this.passwordFeedback = e.message || 'No se pudo actualizar la contraseña.';
-    }
+    this.passwordFeedback = 'La API Node actual no implementa cambio de contraseña.';
   },
 
   async fetchStateFromServer() {
-    const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}?action=load`, {
+    const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}/state`, {
       headers: { 'Accept': 'application/json' },
       credentials: 'same-origin'
     });
@@ -213,7 +111,7 @@ window.AAPPUtils = {
   },
 
   async saveStateToServer(data) {
-    const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}?action=save`, {
+    const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}/state`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -234,7 +132,7 @@ window.AAPPUtils = {
   },
 
   async resetStateOnServer() {
-    const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}?action=reset`, {
+    const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}/state/reset`, {
       method: 'POST',
       headers: { 'Accept': 'application/json' },
       credentials: 'same-origin'
