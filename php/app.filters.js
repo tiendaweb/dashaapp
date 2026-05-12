@@ -94,13 +94,16 @@ window.AAPPFilters = {
   },
 
   filteredTasks() {
-    return this.db.tasks.filter((t) => (
+    return this.db.tasks.filter((t) => {
+      if (this.taskFilterSaasId && t.saasId !== this.taskFilterSaasId) return false;
+      return (
       this.matchQuery(t.title) ||
       this.matchQuery(t.notes) ||
       this.matchQuery(t.status) ||
       this.matchQuery(this.saasName(t.saasId)) ||
       this.matchQuery((t.checks || []).map((c) => c.label).join(' '))
-    ));
+    );
+    });
   },
 
   filteredNotes() {

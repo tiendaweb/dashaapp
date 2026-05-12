@@ -49,6 +49,13 @@ window.AAPPState = () => ({
     meta: { version: 1, savedAt: null }
   },
 
+  uiPrefs: {
+    hiddenResellerColumns: [],
+    hiddenPartnerColumns: [],
+    taskFilterSaasId: '',
+    noteFilterSaasId: ''
+  },
+
   expenseForm: { name: '', amount: 0, date: '' },
   resellerHtml: '',
 
@@ -59,6 +66,7 @@ window.AAPPState = () => ({
   // UI filters
   domainFilterSaasId: '',
   noteFilterSaasId: '',
+  taskFilterSaasId: '',
 
   imports: {
     plan: '',
@@ -144,6 +152,9 @@ window.AAPPState = () => ({
     task: { id: '', title: '', saasId: '', status: 'todo', notes: '', checks: [] },
     note: { id: '', saasId: '', title: '', content: '' }
   },
+  newTaskCheckLabel: '',
+  dragTaskId: '',
+  dragTaskCheckIdx: null,
 
   taskTemplates: [
     { key: 'simple', label: 'Checklist simple', checks: ['Brief listo', 'Accesos/credenciales', 'QA básico'] },

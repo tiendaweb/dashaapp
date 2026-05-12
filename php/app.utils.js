@@ -119,6 +119,57 @@ window.AAPPUtils = {
     return this.safeStorageSet(window.AAPPConstants.STORAGE_KEY, data);
   },
 
+  loadUiPrefs() {
+    try {
+      const raw = this.safeStorageGet(window.AAPPConstants.UI_PREFS_KEY);
+      if (!raw) return {};
+      return JSON.parse(raw);
+    } catch (e) {
+      console.warn('No se pudieron cargar las preferencias de UI.', e);
+      return {};
+    }
+  },
+
+  saveUiPrefs(payload) {
+    try {
+      const data = JSON.stringify(payload || {});
+      return this.safeStorageSet(window.AAPPConstants.UI_PREFS_KEY, data);
+    } catch (e) {
+      console.warn('No se pudieron guardar las preferencias de UI.', e);
+      return false;
+    }
+  },
+
+  updateUiPref(key, value) {
+    this.uiPrefs = { ...this.uiPrefs, [key]: value };
+    this.saveUiPrefs(this.uiPrefs);
+  },
+
+  isColumnHidden(section, key) {
+    if (section === 'resellers') return (this.uiPrefs.hiddenResellerColumns || []).includes(key);
+    if (section === 'partners') return (this.uiPrefs.hiddenPartnerColumns || []).includes(key);
+    return false;
+  },
+
+  toggleColumn(section, key) {
+    const mapKey = section === 'resellers' ? 'hiddenResellerColumns' : 'hiddenPartnerColumns';
+    const list = Array.isArray(this.uiPrefs[mapKey]) ? [...this.uiPrefs[mapKey]] : [];
+    const idx = list.indexOf(key);
+    if (idx >= 0) list.splice(idx, 1);
+    else list.push(key);
+    this.updateUiPref(mapKey, list);
+  },
+
+  setTaskFilter(saasId) {
+    this.taskFilterSaasId = saasId || '';
+    this.updateUiPref('taskFilterSaasId', this.taskFilterSaasId);
+  },
+
+  setNoteFilter(saasId) {
+    this.noteFilterSaasId = saasId || '';
+    this.updateUiPref('noteFilterSaasId', this.noteFilterSaasId);
+  },
+
   async checkSession() {
     try {
       const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}?action=session`, {
