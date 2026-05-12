@@ -10,6 +10,8 @@
     "seed": "node backend/src/scripts/seed.js"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "knex": "^3.2.10",
+    "sqlite3": "^6.0.1"
   }
 }
