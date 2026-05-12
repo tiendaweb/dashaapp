@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import { hashPassword } from '../src/utils/password.js';
 
 /** @param {import('knex').Knex} knex */
 export async function seed(knex) {
@@ -57,7 +57,7 @@ export async function seed(knex) {
     status: 'active'
   });
 
-  const passwordHash = crypto.createHash('sha256').update('Admin12345!').digest('hex');
+  const passwordHash = hashPassword('Admin12345!');
 
   await knex('users').insert({
     company_id: companyId,
