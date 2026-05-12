@@ -25,7 +25,7 @@ window.AAPPCrud = {
     this.resetSaasForm();
   },
   delSaas(id) {
-    if (!confirm('¿Borrar empresa? Esto NO borra planes/clientes automáticamente.')) return;
+    if (!this.confirmDelete('¿Borrar empresa? Esto NO borra planes/clientes automáticamente.')) return;
     this.db.saas = this.db.saas.filter(x => x.id !== id);
     // limpiar referencias
     this.db.domains = this.db.domains.map(d => d.saasId === id ? { ...d, saasId: '' } : d);
@@ -77,7 +77,7 @@ window.AAPPCrud = {
     this.resetDomainForm();
   },
   delDomain(id) {
-    if (!confirm('¿Borrar dominio?')) return;
+    if (!this.confirmDelete('¿Borrar dominio?')) return;
     this.db.domains = this.db.domains.filter(x => x.id !== id);
     this.persist();
   },
@@ -134,7 +134,7 @@ window.AAPPCrud = {
     this.resetPlanForm();
   },
   delPlan(id) {
-    if (!confirm('¿Borrar plan? Clientes que lo usen quedarán con plan “-”.')) return;
+    if (!this.confirmDelete('¿Borrar plan? Clientes que lo usen quedarán con plan “-”.')) return;
     this.db.plans = this.db.plans.filter(x => x.id !== id);
     this.persist();
   },
@@ -196,7 +196,7 @@ window.AAPPCrud = {
     this.resetCampaignForm();
   },
   delCampaign(id) {
-    if (!confirm('¿Borrar campaña?')) return;
+    if (!this.confirmDelete('¿Borrar campaña?')) return;
     this.db.campaigns = this.db.campaigns.filter(x => x.id !== id);
     this.persist();
   },
@@ -252,7 +252,7 @@ window.AAPPCrud = {
     this.resetExtraForm();
   },
   delExtra(id) {
-    if (!confirm('¿Borrar extra? Clientes que lo usen lo perderán.')) return;
+    if (!this.confirmDelete('¿Borrar extra? Clientes que lo usen lo perderán.')) return;
     // quitar de clientes
     this.db.clients = this.db.clients.map(c => ({
       ...c,
@@ -303,7 +303,7 @@ window.AAPPCrud = {
     this.resetClientForm();
   },
   delClient(id) {
-    if (!confirm('¿Borrar cliente?')) return;
+    if (!this.confirmDelete('¿Borrar cliente?')) return;
     this.db.domains = this.db.domains.map(d => d.clientId === id ? { ...d, clientId: '' } : d);
     this.db.clients = this.db.clients.filter(x => x.id !== id);
     this.persist();
@@ -364,7 +364,7 @@ window.AAPPCrud = {
     this.resetResellerForm();
   },
   delReseller(id) {
-    if (!confirm('¿Borrar este plan revendedor?')) return;
+    if (!this.confirmDelete('¿Borrar este plan revendedor?')) return;
     this.db.resellers = this.db.resellers.filter(x => x.id !== id);
     this.persist();
   },
@@ -394,7 +394,7 @@ window.AAPPCrud = {
     this.resetPartnerForm();
   },
   delPartner(id) {
-    if (!confirm('¿Borrar partner?')) return;
+    if (!this.confirmDelete('¿Borrar partner?')) return;
     this.db.partners = this.db.partners.filter(x => x.id !== id);
     this.persist();
   },
@@ -478,7 +478,7 @@ window.AAPPCrud = {
     alert('Venta registrada.');
   },
   removePosSale(id) {
-    if (!confirm('¿Borrar esta venta POS?')) return;
+    if (!this.confirmDelete('¿Borrar esta venta POS?')) return;
     this.db.posSales = this.db.posSales.filter(x => x.id !== id);
     this.persist();
   },
@@ -611,7 +611,7 @@ window.AAPPCrud = {
     this.persist();
   },
   clearExpenses() {
-    if (!confirm('¿Borrar todos los egresos manuales?')) return;
+    if (!this.confirmDelete('¿Borrar todos los egresos manuales?')) return;
     this.db.expenses = [];
     this.persist();
   },
@@ -680,7 +680,7 @@ window.AAPPCrud = {
     this.persist();
   },
   deleteTask(id) {
-    if (!confirm('¿Borrar esta tarea?')) return;
+    if (!this.confirmDelete('¿Borrar esta tarea?')) return;
     this.db.tasks = this.db.tasks.filter((t) => t.id !== id);
     this.persist();
   },
@@ -715,7 +715,7 @@ window.AAPPCrud = {
     this.forms.note = JSON.parse(JSON.stringify(n));
   },
   deleteNote(id) {
-    if (!confirm('¿Borrar esta nota?')) return;
+    if (!this.confirmDelete('¿Borrar esta nota?')) return;
     this.db.notes = this.db.notes.filter((n) => n.id !== id);
     this.persist();
   },
@@ -1133,7 +1133,7 @@ window.AAPPCrud = {
     }
     const file = event?.target?.files?.[0];
     if (!file) return;
-    if (!confirm('Esto reemplaza todos tus datos actuales. ¿Continuar?')) {
+    if (!this.confirmDelete('Esto reemplaza todos tus datos actuales. ¿Continuar?')) {
       event.target.value = '';
       return;
     }
@@ -1439,7 +1439,7 @@ window.AAPPCrud = {
   importJSON() {
     const txt = (this.importText || '').trim();
     if (!txt) return alert('Pegá un JSON primero.');
-    if (!confirm('Esto reemplaza todos tus datos actuales. ¿Continuar?')) return;
+    if (!this.confirmDelete('Esto reemplaza todos tus datos actuales. ¿Continuar?')) return;
 
     try {
       const parsed = JSON.parse(txt);
@@ -1453,7 +1453,7 @@ window.AAPPCrud = {
   },
 
   async resetAll() {
-    if (!confirm('RESET TOTAL: se borra todo en la base de datos. ¿Continuar?')) return;
+    if (!this.confirmDelete('RESET TOTAL: se borra todo en la base de datos. ¿Continuar?')) return;
     try {
       await this.resetStateOnServer();
       location.reload();

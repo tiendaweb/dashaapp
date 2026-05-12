@@ -13,6 +13,8 @@ window.AAPPState = () => ({
   saving: false,
   saveMessage: '',
 
+  viewState: { loading: false, error: '', empty: false },
+
   tabs: [
     { key: 'dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },
     { key: 'saas', label: 'Empresas', icon: 'fa-building' },

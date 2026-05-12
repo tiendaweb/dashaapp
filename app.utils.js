@@ -43,6 +43,12 @@ window.AAPPUtils = {
     return String(text || '').toLowerCase().includes(q);
   },
 
+
+
+  confirmDelete(message) {
+    return window.confirm(message || '¿Confirmás la eliminación?');
+  },
+
   async copyToClipboard(text) {
     const value = String(text ?? '');
     if (!value) return false;
@@ -72,19 +78,38 @@ window.AAPPUtils = {
   },
 
   async checkSession() {
-    this.isAuthenticated = true;
-    this.authUser = { email: 'node@local', role: 'admin' };
-    return true;
+    const token = window.AAPPApi?.getToken?.();
+    if (!token) { this.isAuthenticated = false; this.authUser = null; return false; }
+    try {
+      const users = await window.AAPPApi.users();
+      this.isAuthenticated = true;
+      this.authUser = users?.[0] || { email: 'session@local' };
+      return true;
+    } catch (_e) {
+      window.AAPPApi.setToken('');
+      this.isAuthenticated = false;
+      this.authUser = null;
+      return false;
+    }
   },
 
   async login() {
     this.authError = '';
-    this.isAuthenticated = true;
-    this.authUser = { email: (this.loginForm.email || 'node@local').trim(), role: 'admin' };
-    await this.loadRemoteState();
+    try {
+      const auth = await window.AAPPApi.login((this.loginForm.email||'').trim(), this.loginForm.password||'');
+      window.AAPPApi.setToken(auth.token);
+      this.isAuthenticated = true;
+      this.authUser = auth.user;
+      await this.loadRemoteState();
+    } catch (e) {
+      this.authError = e.message || 'No se pudo iniciar sesión';
+      this.isAuthenticated = false;
+    }
   },
 
   async logout() {
+    try { await window.AAPPApi.logout(); } catch (_e) {}
+    window.AAPPApi.setToken('');
     this.isAuthenticated = false;
     this.authUser = null;
   },
@@ -94,41 +119,11 @@ window.AAPPUtils = {
   },
 
   async fetchStateFromServer() {
-    const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}/state`, {
-      headers: { 'Accept': 'application/json' },
-      credentials: 'same-origin'
-    });
-    if (res.status === 401) {
-      this.isAuthenticated = false;
-      this.authUser = null;
-      throw new Error('Sesión expirada. Volvé a iniciar sesión.');
-    }
-    if (!res.ok) throw new Error('No se pudo cargar el estado desde el servidor.');
-    const payload = await res.json();
-    if (!payload.success) throw new Error(payload.message || 'Respuesta inválida del servidor.');
-    if (payload.user) this.authUser = payload.user;
-    return payload.data;
+    return await window.AAPPApi.state();
   },
 
   async saveStateToServer(data) {
-    const res = await fetch(`${window.AAPPConstants.API_ENDPOINT}/state`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      credentials: 'same-origin',
-      body: JSON.stringify(data)
-    });
-    if (res.status === 401) {
-      this.isAuthenticated = false;
-      this.authUser = null;
-      throw new Error('Sesión expirada. Volvé a iniciar sesión.');
-    }
-    if (!res.ok) throw new Error('No se pudo guardar en la base de datos.');
-    const payload = await res.json();
-    if (!payload.success) throw new Error(payload.message || 'No se pudo guardar en la base de datos.');
-    return payload;
+    return await window.AAPPApi.saveState(data);
   },
 
   async resetStateOnServer() {
