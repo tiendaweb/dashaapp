@@ -1,0 +1,14 @@
+services:
+  backend:
+    build: .
+    container_name: dashaapp-backend
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - sqlite_data:/app/backend/data
+    restart: unless-stopped
+
+volumes:
+  sqlite_data:
