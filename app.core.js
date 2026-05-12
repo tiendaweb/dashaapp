@@ -4,23 +4,31 @@ window.AAPPCore = {
     this.applyDarkClass();
 
     this.appLoading = true;
+    this.viewState.loading = true;
+    this.viewState.error = '';
     // Comprobar sesión antes de cargar datos
     await this.checkSession();
     if (!this.isAuthenticated) {
       this.authChecking = false;
       this.appLoading = false;
+      this.viewState.loading = false;
+      this.viewState.loading = false;
+      this.activeTab = 'login';
       return;
     }
 
     try {
       await this.loadRemoteState();
+      this.viewState.empty = !this.db.saas.length && !this.db.clients.length && !this.db.plans.length;
     } catch (e) {
       console.warn('No se pudo cargar la base de datos remota, usando seed mínimo.', e);
       this.apiUnavailable = true;
+      this.viewState.error = 'No se pudieron cargar datos desde la API.';
       this.seedMinimal({ persist: false });
     } finally {
       this.authChecking = false;
       this.appLoading = false;
+      this.viewState.loading = false;
     }
 
     if (!this.forms.pos.date) this.forms.pos.date = this.todayISO();

@@ -9,6 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <script defer src="app.constants.js"></script>
+  <script defer src="frontend/src/services/api.js"></script>
   <script defer src="app.state.js"></script>
   <script defer src="app.utils.js"></script>
   <script defer src="app.core.js"></script>
@@ -129,7 +130,7 @@
               AAPP Manager <span class="text-sky-300">•</span> Dashboard
             </h1>
             <p class="text-xs md:text-sm text-slate-300">
-              Todo local (localStorage) • CRUD • Relaciones • Resúmenes
+              API Node • CRUD • Relaciones • Resúmenes
             </p>
           </div>
 
@@ -173,6 +174,9 @@
 
     <!-- Content -->
     <section class="mt-4">
+      <template x-if="viewState.loading"><div class='glass rounded-2xl p-4 mb-4'>Cargando datos…</div></template>
+      <template x-if="viewState.error"><div class='glass rounded-2xl p-4 mb-4 border border-red-400/40 text-red-200' x-text="viewState.error"></div></template>
+      <template x-if="viewState.empty && !viewState.loading && !viewState.error"><div class='glass rounded-2xl p-4 mb-4'>No hay datos para mostrar.</div></template>
       <!-- Dashboard -->
       <div x-show="activeTab==='dashboard'" x-transition.opacity>
         <div class="flex items-center gap-2 mb-3">
