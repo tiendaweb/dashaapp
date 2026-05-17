@@ -6,5 +6,6 @@ export function notFound(_req, res) {
 
 export function errorHandler(err, _req, res, _next) {
   const status = err.status || 500;
-  return fail(res, err.message || 'Error interno del servidor', status);
+  const message = status >= 500 ? 'Error interno del servidor' : err.message || 'Error en la solicitud';
+  return fail(res, message, status);
 }
