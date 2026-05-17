@@ -1,17 +1,37 @@
 import { ok } from '../utils/http.js';
 
 export class EntityController {
-  constructor(stateService) { this.stateService = stateService; }
-  list = (key) => async (_req, res, next) => {
+  constructor({ companyModel, planModel, subscriptionModel }) {
+    this.companyModel = companyModel;
+    this.planModel = planModel;
+    this.subscriptionModel = subscriptionModel;
+  }
+
+  saas = async (_req, res, next) => {
     try {
-      const state = await this.stateService.load();
-      return ok(res, state[key] || []);
+      const data = await this.companyModel.list();
+      return ok(res, data);
     } catch (e) { return next(e); }
   };
+
+  plans = async (_req, res, next) => {
+    try {
+      const data = await this.planModel.list();
+      return ok(res, data);
+    } catch (e) { return next(e); }
+  };
+
+  clients = async (_req, res, next) => {
+    try {
+      const data = await this.companyModel.list();
+      return ok(res, data);
+    } catch (e) { return next(e); }
+  };
+
   subscriptions = async (_req, res, next) => {
     try {
-      const state = await this.stateService.load();
-      const data = (state.clients || []).map((c) => ({ id: c.id, clientId: c.id, planId: c.planId, extraIds: c.extraIds || [], status: 'active' }));
+      const rows = await this.subscriptionModel.list();
+      const data = rows.map(({ id, clientId, planId, status }) => ({ id, clientId, planId, extraIds: [], status }));
       return ok(res, data);
     } catch (e) { return next(e); }
   };

@@ -23,6 +23,16 @@ npm run dev
 
 API disponible en: `http://localhost:3000`
 
+## Arquitectura de persistencia
+
+- **SQLite (`backend/data/app.sqlite`)**
+  - Entidades de negocio: `companies`, `plans`, `subscriptions`, `users`, `roles`, `permissions`, `modules`, `plan_modules`, `auth_sessions`.
+  - Endpoints `/api/saas`, `/api/plans`, `/api/clients` y `/api/subscriptions` leen desde estas tablas SQL.
+- **Archivo JSON (`backend/data/state.json`)**
+  - Se mantiene como almacenamiento **legacy/genérico** para pruebas rápidas de estado.
+  - Endpoints asociados: `/api/state`, `/api/state/reset` y alias explícitos `/api/legacy/state`, `/api/legacy/state/reset`.
+  - Este dominio legacy está separado del dominio SaaS persistido en SQLite.
+
 ## Credenciales del usuario admin (seed)
 - **Email:** `admin@example.com`
 - **Password:** `Admin12345!`
