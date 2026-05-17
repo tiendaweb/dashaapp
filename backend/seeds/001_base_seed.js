@@ -21,7 +21,8 @@ export async function seed(knex) {
   const permissions = [
     { code: 'users.manage', description: 'Gestionar usuarios' },
     { code: 'billing.manage', description: 'Gestionar facturación' },
-    { code: 'modules.read', description: 'Ver módulos' }
+    { code: 'modules.read', description: 'Ver módulos' },
+    { code: 'state.manage', description: 'Gestionar estado legacy' }
   ];
   await knex('permissions').insert(permissions);
 

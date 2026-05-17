@@ -58,3 +58,21 @@ docker compose up --build
 ```
 
 Este flujo ejecuta migraciones y seed automáticamente antes de iniciar el servidor Node.
+
+## Autenticación y autorización de endpoints de estado
+
+Los endpoints legacy de estado requieren autenticación y permiso explícito:
+
+- `GET /api/state`
+- `POST /api/state`
+- `POST /api/state/reset`
+- `GET /api/legacy/state`
+- `POST /api/legacy/state`
+- `POST /api/legacy/state/reset`
+
+Requisitos:
+
+1. Enviar `Authorization: Bearer <token>` (token obtenido en `POST /api/auth/login`).
+2. El usuario debe tener el permiso `state.manage`.
+
+En el seed base, el rol `admin` recibe todos los permisos definidos, incluyendo `state.manage`.

@@ -20,6 +20,9 @@ window.AAPPApi = (() => {
     login: (email, password) => request('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) }),
     logout: () => request('/auth/logout', { method: 'POST' }),
     users: () => request('/users'), roles: () => request('/roles'), companies: () => request('/saas'), plans: () => request('/plans'), subscriptions: () => request('/subscriptions'), clients: () => request('/clients'),
-    state: () => request('/state'), saveState: (body) => request('/state', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    // Las llamadas de estado usan request(), que adjunta Authorization: Bearer <token> cuando existe sesión.
+    state: () => request('/state'),
+    saveState: (body) => request('/state', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+    resetState: () => request('/state/reset', { method: 'POST' })
   };
 })();
